@@ -31,6 +31,7 @@ set(BUILD_API_EXAMPLES OFF CACHE INTERNAL "" FORCE)
 set(BUILD_API_TESTS OFF CACHE INTERNAL "" FORCE)
 
 add_subdirectory("cpp-sc2")
+add_subdirectory("libs")
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT BasicSc2Bot)
 set_target_properties(sc2api PROPERTIES FOLDER sc2api)
@@ -64,5 +65,5 @@ include_directories(SYSTEM
 # Create the executable.
 add_executable(Tutorial Tutorial.cpp)
 target_link_libraries(Tutorial
-    sc2api sc2lib sc2utils
+    sc2api sc2lib sc2utils yaml-cpp
 )
