@@ -63,7 +63,7 @@ include_directories(SYSTEM
 )
 
 # Create the executable.
-add_executable(Tutorial Tutorial.cpp)
-target_link_libraries(Tutorial
+add_executable(Bot main.cpp Bot.cpp BotConfig.cpp)
+target_link_libraries(Bot
     sc2api sc2lib sc2utils yaml-cpp
 )
