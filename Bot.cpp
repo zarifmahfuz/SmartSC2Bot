@@ -1,5 +1,6 @@
 #include <sc2api/sc2_unit_filters.h>
 #include "Bot.h"
+#include <iostream>
 
 Bot::Bot(const BotConfig &config)
         : config(config) {}
@@ -27,7 +28,7 @@ void Bot::OnUnitIdle(const Unit *unit) {
         }
         case UNIT_TYPEID::TERRAN_SCV: {
             // if an SCV is idle, tell it mine minerals
-            const Unit *mineral_target = FindNearestRequestedUnit(unit->pos, UNIT_TYPEID::NEUTRAL_MINERALFIELD);
+            const Unit *mineral_target = FindNearestRequestedUnit(unit->pos, Unit::Alliance::Neutral, UNIT_TYPEID::NEUTRAL_MINERALFIELD);
             if (!mineral_target) {
                 break;
             }
@@ -41,9 +42,9 @@ void Bot::OnUnitIdle(const Unit *unit) {
     }
 }
 
-const Unit *Bot::FindNearestRequestedUnit(const Point2D &start, UNIT_TYPEID unit_type) {
+const Unit *Bot::FindNearestRequestedUnit(const Point2D &start, Unit::Alliance alliance, UNIT_TYPEID unit_type) {
     // get all units of the specified alliance
-    Units units = Observation()->GetUnits(Unit::Alliance::Neutral);
+    Units units = Observation()->GetUnits(alliance);
     float distance = std::numeric_limits<float>::max();
     const Unit *target = nullptr;
 
@@ -161,7 +162,7 @@ bool Bot::TryBuildRefinery() {
         if (!builder_unit) { return false; }
 
         // get the nearest vespene geyser
-        const Unit *vespene_geyser = FindNearestRequestedUnit(builder_unit->pos, UNIT_TYPEID::NEUTRAL_VESPENEGEYSER);
+        const Unit *vespene_geyser = FindNearestRequestedUnit(builder_unit->pos, Unit::Alliance::Neutral, UNIT_TYPEID::NEUTRAL_VESPENEGEYSER);
 
         if (!vespene_geyser) { return false; }
         // issue a command to the selected unit
