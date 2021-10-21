@@ -1,10 +1,13 @@
-# SmartBot
+# SmartSC2Bot
 
-# Developer Install / Compile Instructions
+# Building
 ## Requirements
+* [Visual Studio 2019](https://www.visualstudio.com/downloads/)
 * [CMake](https://cmake.org/download/)
-* Starcraft 2 ([Windows](https://starcraft2.com/en-us/)) ([Linux](https://github.com/Blizzard/s2client-proto#linux-packages)) 
-* [Starcraft 2 Map Packs](https://github.com/Blizzard/s2client-proto#map-packs)
+* StarCraft II ([Windows](https://starcraft2.com/en-us/)) ([Linux](https://github.com/Blizzard/s2client-proto#linux-packages)) 
+* [StarCraft II Map Packs](https://github.com/Blizzard/s2client-proto#map-packs)
+
+Install StarCraft II and extract the contents of the Ladder 2017 Season 1 map pack into the `Maps` directory in the install location of StarCraft II. If it doesn't exist, create it. On Windows, by default it is `C:\Program Files (x86)\StarCraft II\Maps`.
 
 ## Windows
 
@@ -49,4 +52,16 @@ $ cmake ../
 :: Build
 $ make
 ```
+
+# Running
+First, configure the BasicSc2Bot project's command-line arguments to debug with:
+1. In Visual Studio, right-click on the BasicSc2Bot project under the solution in the Solution Explorer.
+2. Click Properties.
+3. In the top-left of the window that appears, set the Configuration to "Active(Debug)".
+4. Select the Debugging page under Configuration Properties on the left.
+5. Set the value of Command Arguments to `-c -a zerg -d Hard -m CactusValleyLE.SC2Map`. This will result in the bot playing against the built-in Zerg AI on hard difficulty on the map CactusValleyLE.
+6. Click OK.
+
+
+You can press F5 or the ▶ button at the top of Visual Studio to run the bot with the command-line arguments you configured.
 
