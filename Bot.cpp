@@ -11,6 +11,7 @@ void Bot::OnGameStart() {
 void Bot::OnStep() {
     TryBuildSupplyDepot();
     TryBuildBarracks();
+    TryBuildRefinery();
 }
 
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
@@ -19,29 +20,19 @@ size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
 
 void Bot::OnUnitIdle(const Unit *unit) {
     switch (unit->unit_type.ToType()) {
-        // build/train? a Terran Space Construction Vehicle (SCV)
         case UNIT_TYPEID::TERRAN_COMMANDCENTER: {
+            // train SCVs in the command center
             Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_SCV);
             break;
         }
         case UNIT_TYPEID::TERRAN_SCV: {
             // if an SCV is idle, tell it mine minerals
-            const Unit *mineral_target = FindNearestMineralPatch(unit->pos);
+            const Unit *mineral_target = FindNearestRequestedUnit(unit->pos, UNIT_TYPEID::NEUTRAL_MINERALFIELD);
             if (!mineral_target) {
                 break;
             }
             // the ability type SMART is equivalent to a right click when you have a unit selected
             Actions()->UnitCommand(unit, ABILITY_ID::SMART, mineral_target);
-            break;
-        }
-        case UNIT_TYPEID::TERRAN_BARRACKS: {
-            Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
-            break;
-        }
-        case UNIT_TYPEID::TERRAN_MARINE: {
-            const GameInfo &game_info = Observation()->GetGameInfo();
-            // command the unit to attack the first enemy location
-            Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, game_info.enemy_start_locations.front());
             break;
         }
         default: {
@@ -50,12 +41,15 @@ void Bot::OnUnitIdle(const Unit *unit) {
     }
 }
 
-const Unit *Bot::FindNearestMineralPatch(const Point2D &start) {
+const Unit *Bot::FindNearestRequestedUnit(const Point2D &start, UNIT_TYPEID unit_type) {
+    // get all units of the specified alliance
     Units units = Observation()->GetUnits(Unit::Alliance::Neutral);
     float distance = std::numeric_limits<float>::max();
     const Unit *target = nullptr;
+
+    // iterate over all the units and find the closest unit matching the unit type
     for (const auto &u: units) {
-        if (u->unit_type == UNIT_TYPEID::NEUTRAL_MINERALFIELD) {
+        if (u->unit_type == unit_type) {
             float d = DistanceSquared2D(u->pos, start);
             if (d < distance) {
                 distance = d;
@@ -66,23 +60,22 @@ const Unit *Bot::FindNearestMineralPatch(const Point2D &start) {
     return target;
 }
 
-
 bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type) {
     const ObservationInterface *observation = Observation();
-
-    // If a unit already is building a supply structure of this type, do nothing.
-    // Also get an scv to build the structure.
-    const Unit *unit_to_build = nullptr;
+    
+    // get a unit to build the structure
+    const Unit *builder_unit = nullptr;
     Units units = observation->GetUnits(Unit::Alliance::Self);
     for (const auto &unit : units) {
         for (const auto &order : unit->orders) {
+            // if a unit already is building a supply structure of this type, do nothing.
             if (order.ability_id == ability_type_for_structure) {
                 return false;
             }
         }
 
         if (unit->unit_type == unit_type) {
-            unit_to_build = unit;
+            builder_unit = unit;
         }
     }
 
@@ -90,34 +83,92 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
     float ry = GetRandomScalar();
 
     // issue a command to the selected unit
-    Actions()->UnitCommand(unit_to_build,
+    Actions()->UnitCommand(builder_unit,
                            ability_type_for_structure,
-                           Point2D(unit_to_build->pos.x + rx * 15.0f, unit_to_build->pos.y + ry * 15.0f));
+                           Point2D(builder_unit->pos.x + rx * 15.0f, builder_unit->pos.y + ry * 15.0f));
 
     return true;
 }
 
 bool Bot::TryBuildSupplyDepot() {
     const ObservationInterface *observation = Observation();
+    bool buildSupplyDepot = false;
+    size_t supplyDepotCount = CountUnitType(UNIT_TYPEID::TERRAN_SUPPLYDEPOT);
 
-    // if we are not supply capped, don't build a supply depot
-    if (observation->GetFoodUsed() <= observation->GetFoodCap() - 2) {
-        return false;
+    // if supply depot count is 0 and we are reaching supply cap, build the first supply depot
+    if (supplyDepotCount == 0) {
+        if (observation->GetFoodUsed() >= config.firstSupplyDepot) {
+            // build the first supply depot
+            buildSupplyDepot = true;
+            std::cout << "DEBUG: Build first supply depot\n";
+        }
+    } else if (supplyDepotCount == 1) {
+        if (observation->GetFoodUsed() >= config.secondSupplyDepot) {
+            // build the second supply depot
+            buildSupplyDepot = true;
+            std::cout << "DEBUG: Build second supply depot\n";
+        }
     }
-    // try and build a supply depot. Find a random SCV and give it the order.
-    return TryBuildStructure(ABILITY_ID::BUILD_SUPPLYDEPOT);
+
+    return (buildSupplyDepot == true) ? (TryBuildStructure(ABILITY_ID::BUILD_SUPPLYDEPOT)) : false;
 }
 
 bool Bot::TryBuildBarracks() {
-    if (CountUnitType(UNIT_TYPEID::TERRAN_SUPPLYDEPOT) < 1) {
-        // will not build barracks until we have at least one supply depot
-        return false;
-    }
+    bool buildBarracks = false;
+    size_t barracksCount = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
 
     // will only build one barracks
-    if (CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS) > 0) {
-        return false;
+    if (barracksCount == 0) {
+        if ( Observation()->GetFoodUsed() >= config.firstBarracks ) {
+            // if supply is above a certain level, build the first barracks
+            buildBarracks = true;
+            std::cout << "DEBUG: Build first barracks\n";
+        }
     }
 
-    return TryBuildStructure(ABILITY_ID::BUILD_BARRACKS);
+    // order an SCV to build barracks
+    return (buildBarracks == true) ? (TryBuildStructure(ABILITY_ID::BUILD_BARRACKS)) : false;
+}
+
+bool Bot::TryBuildRefinery() {
+    bool buildRefinery = false;
+    size_t refineryCount = CountUnitType(UNIT_TYPEID::TERRAN_REFINERY);
+
+    if (refineryCount == 0) {
+        if ( Observation()->GetFoodUsed() >= config.firstRefinery ) {
+            buildRefinery = true;
+            std::cout << "DEBUG: Build first refinery\n";
+        }
+    }
+
+    if (buildRefinery) {
+        const ObservationInterface *observation = Observation();
+
+        // get an SCV to build the structure
+        const Unit *builder_unit = nullptr;
+        Units units = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_SCV));
+        for (const auto &unit : units) {
+            for (const auto &order : unit->orders) {
+                // if a unit already is building a refinery, do nothing.
+                if (order.ability_id == ABILITY_ID::BUILD_REFINERY) {
+                    return false;
+                }
+            }
+            builder_unit = unit;
+            break;
+        }
+
+        if (!builder_unit) { return false; }
+
+        // get the nearest vespene geyser
+        const Unit *vespene_geyser = FindNearestRequestedUnit(builder_unit->pos, UNIT_TYPEID::NEUTRAL_VESPENEGEYSER);
+
+        if (!vespene_geyser) { return false; }
+        // issue a command to the selected unit
+        Actions()->UnitCommand(builder_unit,
+                               ABILITY_ID::BUILD_REFINERY,
+                               vespene_geyser);
+        return true;
+    }
+    return false;
 }

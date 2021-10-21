@@ -16,3 +16,6 @@ build/
 # IDEs
 .vs/
 .idea/
+.vscode/
+
+zarifBuildScript.sh
