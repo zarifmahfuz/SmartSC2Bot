@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
                                 });
 
     coordinator.LaunchStarcraft();
-    coordinator.StartGame("BelShirVestigeLE.SC2Map");
+    coordinator.StartGame("Ladder2017Season1/BelShirVestigeLE.SC2Map");
     while (coordinator.Update()) {
     }
 

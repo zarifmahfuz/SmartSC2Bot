@@ -9,6 +9,10 @@ public:
     static BotConfig from_file(const std::string &filename);
 
     const int test_value;
+    const int firstSupplyDepot;
+    const int secondSupplyDepot;
+    const int firstBarracks;
+    const int firstRefinery;
 
 private:
     explicit BotConfig(const YAML::Node&);

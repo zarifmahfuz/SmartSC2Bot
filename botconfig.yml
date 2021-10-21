@@ -1,1 +1,8 @@
 TestValue: 21
+SupplyDepot:
+    first: 14     # build the first supply depot at supply level 14
+    second: 20    # build the second supply depot at supply level 20
+Barracks:
+    first: 16     # build the first barracks at supply level 16
+Refinery:
+    first: 16     # build the first refinery at supply level 16

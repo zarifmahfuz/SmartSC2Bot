@@ -12,15 +12,22 @@ public:
 
     virtual void OnGameStart() final;
     virtual void OnStep() final;
+
     // this will get called each time a unit has no orders in the current step
-    // both buildings and army are considered as Unit objects in SC2
     virtual void OnUnitIdle(const Unit *unit) final;
 
+    // counts the current number of units of the specified type
     size_t CountUnitType(UNIT_TYPEID unit_type);
-    const Unit *FindNearestMineralPatch(const Point2D &start);
+
+    // finds the nearest requested unit based on euclidean distance
+    const Unit *FindNearestRequestedUnit(const Point2D &start, Unit::Alliance alliance, UNIT_TYPEID unit_type);
+
+    // builds a structure at some distance away from the selected builder unit
     bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::TERRAN_SCV);
+
     bool TryBuildSupplyDepot();
     bool TryBuildBarracks();
+    bool TryBuildRefinery();
 
 private:
     BotConfig config;
