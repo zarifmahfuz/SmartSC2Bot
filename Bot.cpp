@@ -1,6 +1,7 @@
 #include <sc2api/sc2_unit_filters.h>
 #include "Bot.h"
 #include <iostream>
+#include <vector>
 
 Bot::Bot(const BotConfig &config)
         : config(config) {}
@@ -35,6 +36,19 @@ void Bot::OnUnitIdle(const Unit *unit) {
             // the ability type SMART is equivalent to a right click when you have a unit selected
             Actions()->UnitCommand(unit, ABILITY_ID::SMART, mineral_target);
             break;
+        }
+        default: {
+            break;
+        }
+    }
+}
+
+void Bot::OnUnitCreated(const Unit *unit) {
+    switch (unit->unit_type.ToType()) {
+        case UNIT_TYPEID::TERRAN_REFINERY: {
+            // when a Refinery is first created it already has one worker mining gas, need to assign two more
+            CommandSCVs(2, unit);
+            std::cout << "DEBUG: Assign workers on Refinery\n";
         }
         default: {
             break;
@@ -172,4 +186,31 @@ bool Bot::TryBuildRefinery() {
         return true;
     }
     return false;
+}
+
+void Bot::CommandSCVs(int n, const Unit *target, ABILITY_ID ability) {
+    if ( CountUnitType(UNIT_TYPEID::TERRAN_SCV) >= n) {
+        // gather n SCVs
+        std::vector<const Unit *> scv_units;
+        Units units = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_SCV));
+
+        // find SCVs
+        for (const auto& unit : units) {
+            bool valid_scv = true;
+            for (const auto &order : unit->orders) {
+                if (order.target_unit_tag == target->tag) {
+                    // this SCV already has the command we are trying to issue
+                    valid_scv = false;
+                }
+            }
+            if (valid_scv) {
+                scv_units.push_back(unit);
+            }
+            if (scv_units.size() == n) {
+                break;
+            }
+        }
+        // finally, issue the command
+        Actions()->UnitCommand(scv_units, ability, target);
+    }
 }
