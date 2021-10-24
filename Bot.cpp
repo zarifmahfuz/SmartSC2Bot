@@ -58,6 +58,15 @@ void Bot::OnUnitCreated(const Unit *unit) {
                 std::cout << "DEBUG: Upgrade first Barracks to Reactor\n";
             }
         }
+        case UNIT_TYPEID::TERRAN_SCV: {
+            size_t num_scv = CountUnitType(UNIT_TYPEID::TERRAN_SCV);
+            if ( num_scv == static_cast<size_t>(config.firstScout) ) {
+                // send the SCV to scout
+                const GameInfo& game_info = Observation()->GetGameInfo();
+                Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, game_info.enemy_start_locations.front());
+                std::cout << "DEBUG: Sending an SCV to scout\n";
+            }
+        }
         default: {
             break;
         }

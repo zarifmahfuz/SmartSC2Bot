@@ -6,3 +6,6 @@ Barracks:
     first: 16     # build the first barracks at supply level 16
 Refinery:
     first: 16     # build the first refinery at supply level 16
+SCV:
+    scout:
+        first: 17   # send the 17th SCV to scout
