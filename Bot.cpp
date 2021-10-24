@@ -50,6 +50,14 @@ void Bot::OnUnitCreated(const Unit *unit) {
             CommandSCVs(2, unit);
             std::cout << "DEBUG: Assign workers on Refinery\n";
         }
+        case UNIT_TYPEID::TERRAN_BARRACKS: {
+            size_t num_barracks = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
+            if ( num_barracks == 1 ) {
+                // upgrade the first Barracks to a Reactor immediately after it finishes building
+                Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
+                std::cout << "DEBUG: Upgrade first Barracks to Reactor\n";
+            }
+        }
         default: {
             break;
         }
