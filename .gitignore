@@ -17,3 +17,5 @@ build/
 .vs/
 .idea/
 .vscode/
+
+.DS_Store
