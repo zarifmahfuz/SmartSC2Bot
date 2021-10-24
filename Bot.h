@@ -28,6 +28,7 @@ public:
     bool TryBuildSupplyDepot();
     bool TryBuildBarracks();
     bool TryBuildRefinery();
+    bool TryBuildCommandCenter();
 
 private:
     BotConfig config;

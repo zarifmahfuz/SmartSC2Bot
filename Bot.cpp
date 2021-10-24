@@ -13,6 +13,7 @@ void Bot::OnStep() {
     TryBuildSupplyDepot();
     TryBuildBarracks();
     TryBuildRefinery();
+    TryBuildCommandCenter();
 }
 
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
@@ -173,3 +174,22 @@ bool Bot::TryBuildRefinery() {
     }
     return false;
 }
+
+bool Bot::TryBuildCommandCenter(){
+    const ObservationInterface *observation = Observation();
+
+    bool buildCommand = false;
+
+    size_t commandCount = CountUnitType(UNIT_TYPEID::TERRAN_COMMANDCENTER);
+
+    // build second command center at supply 19
+    if (commandCount==1){
+        if ( Observation()->GetFoodUsed() >= config.firstCommandCenter ) {
+                buildCommand = true;
+                std::cout << "DEBUG: Build second command center\n";
+        }
+    }
+
+    return (buildCommand == true) ? (TryBuildStructure(ABILITY_ID::BUILD_COMMANDCENTER)) : false;
+}
+

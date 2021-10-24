@@ -12,9 +12,10 @@ int main(int argc, char *argv[]) {
                                         CreateParticipant(Race::Terran, &bot),
                                         CreateComputer(Race::Zerg)
                                 });
-
+    coordinator.SetRealtime(true); // comment out this line to run the game faster
     coordinator.LaunchStarcraft();
     coordinator.StartGame("Ladder2017Season1/BelShirVestigeLE.SC2Map");
+    
     while (coordinator.Update()) {
     }
 
