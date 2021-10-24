@@ -37,6 +37,12 @@ void Bot::OnUnitIdle(const Unit *unit) {
             Actions()->UnitCommand(unit, ABILITY_ID::SMART, mineral_target);
             break;
         }
+        case UNIT_TYPEID::TERRAN_BARRACKSREACTOR: {
+            // start non-stop Marine production
+            Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
+            std::cout << "DEBUG: Start non-stop Marine production\n";
+            break;
+        }
         default: {
             break;
         }
@@ -44,6 +50,24 @@ void Bot::OnUnitIdle(const Unit *unit) {
 }
 
 void Bot::OnUnitCreated(const Unit *unit) {
+    switch (unit->unit_type.ToType()) {
+        case UNIT_TYPEID::TERRAN_SCV: {
+            // SCOUT
+            size_t num_scv = CountUnitType(UNIT_TYPEID::TERRAN_SCV);
+            if ( num_scv == static_cast<size_t>(config.firstScout) ) {
+                // send the SCV to scout
+                const GameInfo& game_info = Observation()->GetGameInfo();
+                Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, game_info.enemy_start_locations.front());
+                std::cout << "DEBUG: Sending an SCV to scout\n";
+            }
+        }
+        default: {
+            break;
+        }
+    }
+}
+
+void Bot::OnBuildingConstructionComplete(const Unit *unit) {
     switch (unit->unit_type.ToType()) {
         case UNIT_TYPEID::TERRAN_REFINERY: {
             // when a Refinery is first created it already has one worker mining gas, need to assign two more
@@ -56,15 +80,6 @@ void Bot::OnUnitCreated(const Unit *unit) {
                 // upgrade the first Barracks to a Reactor immediately after it finishes building
                 Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
                 std::cout << "DEBUG: Upgrade first Barracks to Reactor\n";
-            }
-        }
-        case UNIT_TYPEID::TERRAN_SCV: {
-            size_t num_scv = CountUnitType(UNIT_TYPEID::TERRAN_SCV);
-            if ( num_scv == static_cast<size_t>(config.firstScout) ) {
-                // send the SCV to scout
-                const GameInfo& game_info = Observation()->GetGameInfo();
-                Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, game_info.enemy_start_locations.front());
-                std::cout << "DEBUG: Sending an SCV to scout\n";
             }
         }
         default: {
@@ -97,17 +112,18 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
     
     // get a unit to build the structure
     const Unit *builder_unit = nullptr;
-    Units units = observation->GetUnits(Unit::Alliance::Self);
+    Units units = observation->GetUnits(Unit::Alliance::Self, IsUnit(unit_type));
     for (const auto &unit : units) {
         for (const auto &order : unit->orders) {
             // if a unit already is building a supply structure of this type, do nothing.
             if (order.ability_id == ability_type_for_structure) {
                 return false;
+            } else {
+                if (order.ability_id != ABILITY_ID::ATTACK_ATTACK) {
+                    // don't use a unit that's attacking to build a supply depot
+                    builder_unit = unit;
+                }
             }
-        }
-
-        if (unit->unit_type == unit_type) {
-            builder_unit = unit;
         }
     }
 
