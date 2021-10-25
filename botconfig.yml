@@ -7,4 +7,4 @@ Barracks:
 Refinery:
     first: 16     # build the first refinery at supply level 16
 CommandCenter:
-    first: 19     # build command center at supply level 19
+    second: 19     # build command center at supply level 19
