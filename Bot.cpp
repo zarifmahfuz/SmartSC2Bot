@@ -8,12 +8,15 @@ Bot::Bot(const BotConfig &config)
 
 void Bot::OnGameStart() {
     std::cout << "Hello World!" << std::endl;
+    Units units = Observation()->GetUnits(Unit::Alliance::Self,  IsUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER));
+    first_command_center = units[0]->tag; // get the tag of the command center the game starts with
 }
 
 void Bot::OnStep() {
     TryBuildSupplyDepot();
     TryBuildBarracks();
     TryBuildRefinery();
+    TryBuildCommandCenter();
 }
 
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
@@ -24,6 +27,7 @@ void Bot::OnUnitIdle(const Unit *unit) {
     switch (unit->unit_type.ToType()) {
         case UNIT_TYPEID::TERRAN_COMMANDCENTER: {
             // train SCVs in the command center
+            TryUpgradeCommand();
             Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_SCV);
             break;
         }
@@ -220,6 +224,48 @@ bool Bot::TryBuildRefinery() {
         return true;
     }
     return false;
+}
+
+bool Bot::TryBuildCommandCenter(){
+    const ObservationInterface *observation = Observation();
+
+    bool buildCommand = false;
+
+    size_t commandCount = CountUnitType(UNIT_TYPEID::TERRAN_COMMANDCENTER);
+
+    // build second command center at supply 19 (currently only builds 1 command center)
+    if (commandCount==1){
+        if ( Observation()->GetFoodUsed() >= config.secondCommandCenter ) {
+                buildCommand = true;
+                std::cout << "DEBUG: Build second command center\n";
+        }
+    }
+    return (buildCommand == true) ? (TryBuildStructure(ABILITY_ID::BUILD_COMMANDCENTER)) : false;
+}
+
+
+bool Bot::TryUpgradeStructure(ABILITY_ID ability_type_for_structure){
+
+    switch(ability_type_for_structure){
+        case ABILITY_ID::MORPH_ORBITALCOMMAND:{
+            // upgrade the first command center
+            Actions()->UnitCommand(Observation()->GetUnit(first_command_center), ABILITY_ID::MORPH_ORBITALCOMMAND);
+            return true;
+        }
+    }
+    return false;
+}
+bool Bot::TryUpgradeCommand(){
+    bool upgradeCommand = false;
+
+    size_t barracksCount = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
+
+    // upgrade command center when there is 1 barracks
+    if (barracksCount==1){
+        upgradeCommand = true;
+    }
+
+    return (upgradeCommand == true) ? (TryUpgradeStructure(ABILITY_ID::MORPH_ORBITALCOMMAND)) : false;
 }
 
 void Bot::CommandSCVs(int n, const Unit *target, ABILITY_ID ability) {

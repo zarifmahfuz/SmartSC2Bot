@@ -30,14 +30,19 @@ public:
 
     // builds a structure at some distance away from the selected builder unit
     bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::TERRAN_SCV);
+    bool TryUpgradeStructure(ABILITY_ID ability_type_for_structure);
 
     bool TryBuildSupplyDepot();
     bool TryBuildBarracks();
     bool TryBuildRefinery();
+    bool TryBuildCommandCenter();
+    bool TryUpgradeCommand();
 
+    Tag first_command_center; // tag of the first command center
+    
     // issues a command to n number of SCVs
     void CommandSCVs(int n, const Unit *target, ABILITY_ID ability = ABILITY_ID::SMART);
-
+  
 private:
     BotConfig config;
 };
