@@ -7,6 +7,8 @@ Bot::Bot(const BotConfig &config)
 
 void Bot::OnGameStart() {
     std::cout << "Hello World!" << std::endl;
+    Units units = Observation()->GetUnits(Unit::Alliance::Self,  IsUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER));
+    first_command_center = units[0]->tag; // get the tag of the command center the game starts with
 }
 
 void Bot::OnStep() {
@@ -24,6 +26,7 @@ void Bot::OnUnitIdle(const Unit *unit) {
     switch (unit->unit_type.ToType()) {
         case UNIT_TYPEID::TERRAN_COMMANDCENTER: {
             // train SCVs in the command center
+            TryUpgradeCommand();
             Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_SCV);
             break;
         }
@@ -40,6 +43,21 @@ void Bot::OnUnitIdle(const Unit *unit) {
         default: {
             break;
         }
+    }
+}
+
+// gets called whenever a structure is finished building
+void Bot::OnBuildingConstructionComplete(const Unit *unit){
+    const ObservationInterface *observation = Observation();
+    
+    switch (unit->unit_type.ToType()){
+        // upgrade command center after barracks finishes building
+        case UNIT_TYPEID::TERRAN_BARRACKS:{
+            std::cout << "barracks done building, upgrading command center" << std::endl;
+            // doesn't work for some reason
+            // Actions()->UnitCommand(Observation()->GetUnit(first_command_center), ABILITY_ID::MORPH_ORBITALCOMMAND);
+        }
+        
     }
 }
 
@@ -182,14 +200,38 @@ bool Bot::TryBuildCommandCenter(){
 
     size_t commandCount = CountUnitType(UNIT_TYPEID::TERRAN_COMMANDCENTER);
 
-    // build second command center at supply 19
+    // build second command center at supply 19 (currently only builds 1 command center)
     if (commandCount==1){
         if ( Observation()->GetFoodUsed() >= config.firstCommandCenter ) {
                 buildCommand = true;
                 std::cout << "DEBUG: Build second command center\n";
         }
     }
-
     return (buildCommand == true) ? (TryBuildStructure(ABILITY_ID::BUILD_COMMANDCENTER)) : false;
 }
 
+
+bool Bot::TryUpgradeStructure(ABILITY_ID ability_type_for_structure){
+
+    switch(ability_type_for_structure){
+        case ABILITY_ID::MORPH_ORBITALCOMMAND:{
+            // upgrade the first command center
+            Actions()->UnitCommand(Observation()->GetUnit(first_command_center), ABILITY_ID::MORPH_ORBITALCOMMAND);
+            return true;
+        }
+    }
+    return false;
+}
+bool Bot::TryUpgradeCommand(){
+    bool upgradeCommand = false;
+
+    size_t barracksCount = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
+
+    // upgrade command center when there is 1 barracks
+    if (barracksCount==1){
+        upgradeCommand = true;
+    }
+
+    return (upgradeCommand == true) ? (TryUpgradeStructure(ABILITY_ID::MORPH_ORBITALCOMMAND)) : false;
+
+}

@@ -16,6 +16,7 @@ public:
     // this will get called each time a unit has no orders in the current step
     virtual void OnUnitIdle(const Unit *unit) final;
 
+    virtual void OnBuildingConstructionComplete(const Unit *);
     // counts the current number of units of the specified type
     size_t CountUnitType(UNIT_TYPEID unit_type);
 
@@ -24,12 +25,15 @@ public:
 
     // builds a structure at some distance away from the selected builder unit
     bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::TERRAN_SCV);
+    bool TryUpgradeStructure(ABILITY_ID ability_type_for_structure);
 
     bool TryBuildSupplyDepot();
     bool TryBuildBarracks();
     bool TryBuildRefinery();
     bool TryBuildCommandCenter();
+    bool TryUpgradeCommand();
 
+    Tag first_command_center; // tag of the first command center
 private:
     BotConfig config;
 };
