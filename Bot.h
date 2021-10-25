@@ -57,6 +57,8 @@ private:
 
     // specifies whether we should start marine production on the first barracks
     bool marine_prod_first_barracks = false;
+
+    bool TryBuildEngineeringBay();
 };
 
 #endif //BASICSC2BOT_BOT_H

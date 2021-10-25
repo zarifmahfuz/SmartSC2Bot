@@ -25,6 +25,8 @@ void Bot::OnStep() {
     if (marine_prod_first_barracks) {
         TryStartMarineProd(1);
     }
+
+    TryBuildEngineeringBay();
 }
 
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
@@ -335,4 +337,19 @@ bool Bot::TryStartMarineProd(size_t n) {
             std::cout << "DEBUG: Barracks #" << n << " trains Marine\n";
         }
     }
+}
+
+bool Bot::TryBuildEngineeringBay() {
+    const auto *observation = Observation();
+
+    // Only build one Engineering Bay
+    if (CountUnitType(sc2::UNIT_TYPEID::TERRAN_ENGINEERINGBAY) > 0)
+        return false;
+
+    // Only build if in correct supply range
+    if (observation->GetFoodUsed() < config.engineeringBayMinSupply
+        || observation->GetFoodUsed() > config.engineeringBayMaxSupply)
+        return false;
+
+    return TryBuildStructure(sc2::ABILITY_ID::BUILD_ENGINEERINGBAY);
 }
