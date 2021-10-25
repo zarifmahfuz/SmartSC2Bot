@@ -93,21 +93,6 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
     }
 }
 
-// gets called whenever a structure is finished building
-void Bot::OnBuildingConstructionComplete(const Unit *unit){
-    const ObservationInterface *observation = Observation();
-    
-    switch (unit->unit_type.ToType()){
-        // upgrade command center after barracks finishes building
-        case UNIT_TYPEID::TERRAN_BARRACKS:{
-            std::cout << "barracks done building, upgrading command center" << std::endl;
-            // doesn't work for some reason
-            // Actions()->UnitCommand(Observation()->GetUnit(first_command_center), ABILITY_ID::MORPH_ORBITALCOMMAND);
-        }
-        
-    }
-}
-
 const Unit *Bot::FindNearestRequestedUnit(const Point2D &start, Unit::Alliance alliance, UNIT_TYPEID unit_type) {
     // get all units of the specified alliance
     Units units = Observation()->GetUnits(alliance);
@@ -281,7 +266,8 @@ bool Bot::TryUpgradeCommand(){
     }
 
     return (upgradeCommand == true) ? (TryUpgradeStructure(ABILITY_ID::MORPH_ORBITALCOMMAND)) : false;
-    
+}
+
 void Bot::CommandSCVs(int n, const Unit *target, ABILITY_ID ability) {
     if ( CountUnitType(UNIT_TYPEID::TERRAN_SCV) >= n) {
         // gather n SCVs

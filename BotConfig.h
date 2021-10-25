@@ -13,7 +13,7 @@ public:
     const int secondSupplyDepot;
     const int firstBarracks;
     const int firstRefinery;
-    const int firstCommandCenter;
+    const int secondCommandCenter;
     const int firstScout;
 
 private:
