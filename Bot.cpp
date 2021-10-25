@@ -43,6 +43,14 @@ void Bot::OnUnitIdle(const Unit *unit) {
             std::cout << "DEBUG: Start non-stop Marine production\n";
             break;
         }
+        case UNIT_TYPEID::TERRAN_BARRACKS: {
+            size_t num_barracks = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
+            if ( num_barracks == 1 ) {
+                // upgrade the first Barracks to a Reactor immediately after it finishes building
+                Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
+                std::cout << "DEBUG: Upgrade first Barracks to Reactor\n";
+            }
+        }
         default: {
             break;
         }
@@ -73,14 +81,6 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
             // when a Refinery is first created it already has one worker mining gas, need to assign two more
             CommandSCVs(2, unit);
             std::cout << "DEBUG: Assign workers on Refinery\n";
-        }
-        case UNIT_TYPEID::TERRAN_BARRACKS: {
-            size_t num_barracks = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
-            if ( num_barracks == 1 ) {
-                // upgrade the first Barracks to a Reactor immediately after it finishes building
-                Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
-                std::cout << "DEBUG: Upgrade first Barracks to Reactor\n";
-            }
         }
         default: {
             break;
