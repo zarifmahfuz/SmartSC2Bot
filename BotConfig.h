@@ -13,6 +13,7 @@ public:
     const int secondSupplyDepot;
     const int firstBarracks;
     const int firstRefinery;
+    const int firstScout;
 
 private:
     explicit BotConfig(const YAML::Node&);
