@@ -59,6 +59,7 @@ private:
     bool marine_prod_first_barracks = false;
 
     bool TryBuildEngineeringBay();
+    bool TryBuildStarport();
 };
 
 #endif //BASICSC2BOT_BOT_H

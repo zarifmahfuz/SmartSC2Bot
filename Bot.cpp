@@ -27,6 +27,7 @@ void Bot::OnStep() {
     }
 
     TryBuildEngineeringBay();
+    TryBuildStarport();
 }
 
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
@@ -353,3 +354,20 @@ bool Bot::TryBuildEngineeringBay() {
 
     return TryBuildStructure(sc2::ABILITY_ID::BUILD_ENGINEERINGBAY);
 }
+
+bool Bot::TryBuildStarport() {
+    const auto *observation = Observation();
+
+    // Only build one Starport
+    if (!observation->GetUnits(IsUnits(
+            {sc2::UNIT_TYPEID::TERRAN_STARPORT, sc2::UNIT_TYPEID::TERRAN_STARPORTREACTOR}
+            )).empty())
+        return false;
+
+    // Only build once a Factory is 100% built
+    const auto factories = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_FACTORY));
+    return std::any_of(factories.begin(), factories.end(), [this](const auto &factory) {
+        return factory->build_progress >= 1.0F && TryBuildStructure(sc2::ABILITY_ID::BUILD_STARPORT);
+    });
+}
+
