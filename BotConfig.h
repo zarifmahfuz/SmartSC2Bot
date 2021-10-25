@@ -14,6 +14,7 @@ public:
     const int firstBarracks;
     const int firstRefinery;
     const int firstCommandCenter;
+    const int firstScout;
 
 private:
     explicit BotConfig(const YAML::Node&);
