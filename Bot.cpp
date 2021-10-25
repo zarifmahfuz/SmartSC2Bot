@@ -43,14 +43,7 @@ void Bot::OnUnitIdle(const Unit *unit) {
             std::cout << "DEBUG: Start non-stop Marine production\n";
             break;
         }
-        case UNIT_TYPEID::TERRAN_BARRACKS: {
-            size_t num_barracks = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
-            if ( num_barracks == 1 ) {
-                // upgrade the first Barracks to a Reactor immediately after it finishes building
-                Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
-                std::cout << "DEBUG: Upgrade first Barracks to Reactor\n";
-            }
-        }
+
         default: {
             break;
         }
@@ -67,6 +60,14 @@ void Bot::OnUnitCreated(const Unit *unit) {
                 const GameInfo& game_info = Observation()->GetGameInfo();
                 Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, game_info.enemy_start_locations.front());
                 std::cout << "DEBUG: Sending an SCV to scout\n";
+            }
+        }
+        case UNIT_TYPEID::TERRAN_BARRACKS: {
+            size_t num_barracks = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
+            if ( num_barracks == 1 ) {
+                // upgrade the first Barracks to a Reactor immediately after it finishes building
+                Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
+                std::cout << "DEBUG: Upgrade first Barracks to Reactor\n";
             }
         }
         default: {
