@@ -1,22 +1,16 @@
 #include <sc2api/sc2_api.h>
 #include "Bot.h"
+#include "LadderInterface.h"
 
 int main(int argc, char *argv[]) {
-    Coordinator coordinator;
-    coordinator.LoadSettings(argc, argv);
+    std::string bot_config_file_name = "botconfig.yml";
+    if (argc >= 2 && argv[1][0] != '-')
+        bot_config_file_name = argv[1];
 
-    BotConfig config = BotConfig::from_file("botconfig.yml");
-
+    BotConfig config = BotConfig::from_file(bot_config_file_name);
     Bot bot(config);
-    coordinator.SetParticipants({
-                                        CreateParticipant(Race::Terran, &bot),
-                                        CreateComputer(Race::Zerg)
-                                });
-    coordinator.SetRealtime(true);
-    coordinator.LaunchStarcraft();
-    coordinator.StartGame("Ladder2017Season1/BelShirVestigeLE.SC2Map");
-    while (coordinator.Update()) {
-    }
+
+    LadderInterface::RunBot(argc, argv, &bot, Race::Terran);
 
     return 0;
 }
