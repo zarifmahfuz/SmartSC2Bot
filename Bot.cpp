@@ -202,7 +202,7 @@ bool Bot::TryBuildCommandCenter(){
 
     // build second command center at supply 19 (currently only builds 1 command center)
     if (commandCount==1){
-        if ( Observation()->GetFoodUsed() >= config.firstCommandCenter ) {
+        if ( Observation()->GetFoodUsed() >= config.secondCommandCenter ) {
                 buildCommand = true;
                 std::cout << "DEBUG: Build second command center\n";
         }
