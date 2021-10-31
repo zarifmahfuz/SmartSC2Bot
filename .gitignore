@@ -13,6 +13,8 @@ _deps
 
 build/
 
+cmake-build-debug
+
 # IDEs
 .vs/
 .idea/
