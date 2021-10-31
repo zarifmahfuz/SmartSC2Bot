@@ -207,12 +207,6 @@ bool Bot::TryBuildBarracks() {
     return (buildBarracks == true) ? (TryBuildStructure(ABILITY_ID::BUILD_BARRACKS)) : false;
 }
 
-bool Bot::TryBuildTechLab() {
-    bool buildTechLab = false;
-
-    return true;
-}
-
 bool Bot::TryBuildRefinery() {
     bool buildRefinery = false;
     size_t refineryCount = CountUnitType(UNIT_TYPEID::TERRAN_REFINERY);
