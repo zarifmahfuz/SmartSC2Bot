@@ -111,7 +111,7 @@ bool Bot::TryBuildSupplyDepot() {
         }
     }
 
-    return (buildSupplyDepot == true) ? (TryBuildStructure(ABILITY_ID::BUILD_SUPPLYDEPOT)) : false;
+    return (buildSupplyDepot == true) && (TryBuildStructure(ABILITY_ID::BUILD_SUPPLYDEPOT));
 }
 
 bool Bot::TryBuildBarracks() {
@@ -127,8 +127,24 @@ bool Bot::TryBuildBarracks() {
         }
     }
 
+    // build the 2nd barrack
+    if (barracksCount == 1) {
+        if (Observation()->GetFoodUsed() >= config.secondBarracks) {
+            // if supply >= 19 build the second barrack
+            buildBarracks = true;
+            std::cout << "DEBUG: Build 2nd barrack" << std::endl;
+        }
+    }
+
+
     // order an SCV to build barracks
     return (buildBarracks == true) ? (TryBuildStructure(ABILITY_ID::BUILD_BARRACKS)) : false;
+}
+
+bool Bot::TryBuildTechLab() {
+    bool buildTechLab = false;
+
+    return true;
 }
 
 bool Bot::TryBuildRefinery() {

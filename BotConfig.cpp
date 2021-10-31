@@ -16,5 +16,6 @@ BotConfig::BotConfig(const YAML::Node &node)
           firstSupplyDepot( node["SupplyDepot"]["first"].as<int>() ),
           secondSupplyDepot( node["SupplyDepot"]["second"].as<int>() ),
           firstBarracks( node["Barracks"]["first"].as<int>() ),
+          secondBarracks(node["Barracks"]["second"].as<int>()),
           firstRefinery( node["Refinery"]["first"].as<int>() ) {
 }
