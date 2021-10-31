@@ -8,7 +8,7 @@ Bot::Bot(const BotConfig &config)
 
 void Bot::OnGameStart() {
     std::cout << "Hello World!" << std::endl;
-    Units units = Observation()->GetUnits(Unit::Alliance::Self,  IsUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER));
+    Units units = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER));
     first_command_center = units[0]->tag; // get the tag of the command center the game starts with
 }
 
@@ -33,7 +33,8 @@ void Bot::OnUnitIdle(const Unit *unit) {
         }
         case UNIT_TYPEID::TERRAN_SCV: {
             // if an SCV is idle, tell it mine minerals
-            const Unit *mineral_target = FindNearestRequestedUnit(unit->pos, Unit::Alliance::Neutral, UNIT_TYPEID::NEUTRAL_MINERALFIELD);
+            const Unit *mineral_target = FindNearestRequestedUnit(unit->pos, Unit::Alliance::Neutral,
+                                                                  UNIT_TYPEID::NEUTRAL_MINERALFIELD);
             if (!mineral_target) {
                 break;
             }
@@ -59,16 +60,16 @@ void Bot::OnUnitCreated(const Unit *unit) {
         case UNIT_TYPEID::TERRAN_SCV: {
             // SCOUT
             size_t num_scv = CountUnitType(UNIT_TYPEID::TERRAN_SCV);
-            if ( num_scv == static_cast<size_t>(config.firstScout) ) {
+            if (num_scv == static_cast<size_t>(config.firstScout)) {
                 // send the SCV to scout
-                const GameInfo& game_info = Observation()->GetGameInfo();
+                const GameInfo &game_info = Observation()->GetGameInfo();
                 Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, game_info.enemy_start_locations.front());
                 std::cout << "DEBUG: Sending an SCV to scout\n";
             }
         }
         case UNIT_TYPEID::TERRAN_BARRACKS: {
             size_t num_barracks = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
-            if ( num_barracks == 1 ) {
+            if (num_barracks == 1) {
                 // upgrade the first Barracks to a Reactor immediately after it finishes building
                 Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
                 std::cout << "DEBUG: Upgrade first Barracks to Reactor\n";
@@ -86,6 +87,19 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
             // when a Refinery is first created it already has one worker mining gas, need to assign two more
             CommandSCVs(2, unit);
             std::cout << "DEBUG: Assign workers on Refinery\n";
+        }
+
+        case UNIT_TYPEID::TERRAN_BARRACKS: {
+            size_t num_barracks = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
+
+            if (num_barracks == 2) {
+                // add the techLab addon to the 2nd barrack
+                // This should work because barrack is not doing at this point (right after it's built)
+                Actions()->UnitCommand(unit, ABILITY_ID::BUILD_TECHLAB_BARRACKS);
+                std::cout << "DEBUG: Add Tech Lab to second barrack" << std::endl;
+
+                break;
+            }
         }
         default: {
             break;
@@ -114,12 +128,12 @@ const Unit *Bot::FindNearestRequestedUnit(const Point2D &start, Unit::Alliance a
 
 bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type) {
     const ObservationInterface *observation = Observation();
-    
+
     // get a unit to build the structure
     const Unit *builder_unit = nullptr;
     Units units = observation->GetUnits(Unit::Alliance::Self, IsUnit(unit_type));
-    for (const auto &unit : units) {
-        for (const auto &order : unit->orders) {
+    for (const auto &unit: units) {
+        for (const auto &order: unit->orders) {
             // if a unit already is building a supply structure of this type, do nothing.
             if (order.ability_id == ability_type_for_structure) {
                 return false;
@@ -172,7 +186,7 @@ bool Bot::TryBuildBarracks() {
 
     // will only build one barracks
     if (barracksCount == 0) {
-        if ( Observation()->GetFoodUsed() >= config.firstBarracks ) {
+        if (Observation()->GetFoodUsed() >= config.firstBarracks) {
             // if supply is above a certain level, build the first barracks
             buildBarracks = true;
             std::cout << "DEBUG: Build first barracks\n";
@@ -204,7 +218,7 @@ bool Bot::TryBuildRefinery() {
     size_t refineryCount = CountUnitType(UNIT_TYPEID::TERRAN_REFINERY);
 
     if (refineryCount == 0) {
-        if ( Observation()->GetFoodUsed() >= config.firstRefinery ) {
+        if (Observation()->GetFoodUsed() >= config.firstRefinery) {
             buildRefinery = true;
             std::cout << "DEBUG: Build first refinery\n";
         }
@@ -216,8 +230,8 @@ bool Bot::TryBuildRefinery() {
         // get an SCV to build the structure
         const Unit *builder_unit = nullptr;
         Units units = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_SCV));
-        for (const auto &unit : units) {
-            for (const auto &order : unit->orders) {
+        for (const auto &unit: units) {
+            for (const auto &order: unit->orders) {
                 // if a unit already is building a refinery, do nothing.
                 if (order.ability_id == ABILITY_ID::BUILD_REFINERY) {
                     return false;
@@ -230,7 +244,8 @@ bool Bot::TryBuildRefinery() {
         if (!builder_unit) { return false; }
 
         // get the nearest vespene geyser
-        const Unit *vespene_geyser = FindNearestRequestedUnit(builder_unit->pos, Unit::Alliance::Neutral, UNIT_TYPEID::NEUTRAL_VESPENEGEYSER);
+        const Unit *vespene_geyser = FindNearestRequestedUnit(builder_unit->pos, Unit::Alliance::Neutral,
+                                                              UNIT_TYPEID::NEUTRAL_VESPENEGEYSER);
 
         if (!vespene_geyser) { return false; }
         // issue a command to the selected unit
@@ -242,7 +257,7 @@ bool Bot::TryBuildRefinery() {
     return false;
 }
 
-bool Bot::TryBuildCommandCenter(){
+bool Bot::TryBuildCommandCenter() {
     const ObservationInterface *observation = Observation();
 
     bool buildCommand = false;
@@ -250,20 +265,20 @@ bool Bot::TryBuildCommandCenter(){
     size_t commandCount = CountUnitType(UNIT_TYPEID::TERRAN_COMMANDCENTER);
 
     // build second command center at supply 19 (currently only builds 1 command center)
-    if (commandCount==1){
-        if ( Observation()->GetFoodUsed() >= config.secondCommandCenter ) {
-                buildCommand = true;
-                std::cout << "DEBUG: Build second command center\n";
+    if (commandCount == 1) {
+        if (Observation()->GetFoodUsed() >= config.secondCommandCenter) {
+            buildCommand = true;
+            std::cout << "DEBUG: Build second command center\n";
         }
     }
     return (buildCommand == true) ? (TryBuildStructure(ABILITY_ID::BUILD_COMMANDCENTER)) : false;
 }
 
 
-bool Bot::TryUpgradeStructure(ABILITY_ID ability_type_for_structure){
+bool Bot::TryUpgradeStructure(ABILITY_ID ability_type_for_structure) {
 
-    switch(ability_type_for_structure){
-        case ABILITY_ID::MORPH_ORBITALCOMMAND:{
+    switch (ability_type_for_structure) {
+        case ABILITY_ID::MORPH_ORBITALCOMMAND: {
             // upgrade the first command center
             Actions()->UnitCommand(Observation()->GetUnit(first_command_center), ABILITY_ID::MORPH_ORBITALCOMMAND);
             return true;
@@ -271,13 +286,14 @@ bool Bot::TryUpgradeStructure(ABILITY_ID ability_type_for_structure){
     }
     return false;
 }
-bool Bot::TryUpgradeCommand(){
+
+bool Bot::TryUpgradeCommand() {
     bool upgradeCommand = false;
 
     size_t barracksCount = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
 
     // upgrade command center when there is 1 barracks
-    if (barracksCount==1){
+    if (barracksCount == 1) {
         upgradeCommand = true;
     }
 
@@ -285,15 +301,15 @@ bool Bot::TryUpgradeCommand(){
 }
 
 void Bot::CommandSCVs(int n, const Unit *target, ABILITY_ID ability) {
-    if ( CountUnitType(UNIT_TYPEID::TERRAN_SCV) >= n) {
+    if (CountUnitType(UNIT_TYPEID::TERRAN_SCV) >= n) {
         // gather n SCVs
         std::vector<const Unit *> scv_units;
         Units units = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_SCV));
 
         // find SCVs
-        for (const auto& unit : units) {
+        for (const auto &unit: units) {
             bool valid_scv = true;
-            for (const auto &order : unit->orders) {
+            for (const auto &order: unit->orders) {
                 if (order.target_unit_tag == target->tag) {
                     // this SCV already has the command we are trying to issue
                     valid_scv = false;
