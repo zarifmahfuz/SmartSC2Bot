@@ -38,6 +38,9 @@ public:
     bool TryBuildCommandCenter();
     bool TryUpgradeCommand();
 
+    // trys to attach a Reactor to the n'th Barracks
+    bool TryBuildBarracksReactor(size_t n);
+
     Tag first_command_center; // tag of the first command center
     
     // issues a command to n number of SCVs
@@ -45,6 +48,9 @@ public:
   
 private:
     BotConfig config;
+
+    // represents barracks; index i represents (i+1)'th barracks in the game
+    std::vector<Tag> barracks_tags;
 };
 
 #endif //BASICSC2BOT_BOT_H

@@ -17,6 +17,9 @@ void Bot::OnStep() {
     TryBuildBarracks();
     TryBuildRefinery();
     TryBuildCommandCenter();
+
+    // attach Reactor to the first Barracks
+    TryBuildBarracksReactor(1);
 }
 
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
@@ -66,14 +69,6 @@ void Bot::OnUnitCreated(const Unit *unit) {
                 std::cout << "DEBUG: Sending an SCV to scout\n";
             }
         }
-        case UNIT_TYPEID::TERRAN_BARRACKS: {
-            size_t num_barracks = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
-            if ( num_barracks == 1 ) {
-                // upgrade the first Barracks to a Reactor immediately after it finishes building
-                Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
-                std::cout << "DEBUG: Upgrade first Barracks to Reactor\n";
-            }
-        }
         default: {
             break;
         }
@@ -86,6 +81,19 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
             // when a Refinery is first created it already has one worker mining gas, need to assign two more
             CommandSCVs(2, unit);
             std::cout << "DEBUG: Assign workers on Refinery\n";
+        }
+        case UNIT_TYPEID::TERRAN_BARRACKS: {
+            // size_t num_barracks = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
+            // if ( num_barracks == 1 ) {
+            //     // upgrade the first Barracks to a Reactor immediately after it finishes building
+            //     Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
+            //     std::cout << "DEBUG: Upgrade first Barracks to Reactor\n";
+            // }
+
+            // add the barracks tag to barracks_tags
+            barracks_tags.push_back(unit->tag);
+            std::cout << "WHAT IS A BARRACK'S ADD ON TAG INITIALLY? " << unit->add_on_tag << std::endl;
+            break;
         }
         default: {
             break;
@@ -292,5 +300,21 @@ void Bot::CommandSCVs(int n, const Unit *target, ABILITY_ID ability) {
         }
         // finally, issue the command
         Actions()->UnitCommand(scv_units, ability, target);
+    }
+}
+
+bool Bot::TryBuildBarracksReactor(size_t n) {
+    if (n < 1) { return false; }
+    
+    // if the n'th barracks has been built
+    if (n <= barracks_tags.size()) {
+        const Unit *unit = Observation()->GetUnit(barracks_tags.at(n-1));
+
+        // when the Barracks has no add ons, it's add on tag is 0
+        if ( unit->is_alive && (unit->add_on_tag == 0) ) {
+            // attach a Reactor to this Barracks
+            Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
+            std::cout << "DEBUG: Upgrade " << n << "'th Barracks to Reactor\n";
+        }
     }
 }
