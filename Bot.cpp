@@ -43,12 +43,12 @@ void Bot::OnUnitIdle(const Unit *unit) {
             Actions()->UnitCommand(unit, ABILITY_ID::SMART, mineral_target);
             break;
         }
-//        case UNIT_TYPEID::TERRAN_BARRACKSREACTOR: {
-//            // start non-stop Marine production
-//            Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
-//            std::cout << "DEBUG: Start non-stop Marine production\n";
-//            break;
-//        }
+        case UNIT_TYPEID::TERRAN_BARRACKSREACTOR: {
+            // start non-stop Marine production
+            Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
+            std::cout << "DEBUG: Start non-stop Marine production\n";
+            break;
+        }
 
         default: {
             break;
@@ -59,6 +59,9 @@ void Bot::OnUnitIdle(const Unit *unit) {
     if ((unit == secondBarrack && startMarineProductionSecondBarrack) ||
         (unit == thirdBarrack && startMarineProductionThirdBarrack)) {
         // start non-stop Marine production for the 2nd barrack
+        Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
+        // this second train marine command is mainly for the 3rd barrack, so it can train 2 marines at the same time
+        // for the 2nd barrack this just means that the 2nd marines will be queued
         Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
         std::cout << "DEBUG: 2nd or 3rd Barrack, Start non-stop Marine production" << std::endl;
 
@@ -209,23 +212,30 @@ bool Bot::TryBuildSupplyDepot() {
     const ObservationInterface *observation = Observation();
     bool buildSupplyDepot = false;
     size_t supplyDepotCount = CountUnitType(UNIT_TYPEID::TERRAN_SUPPLYDEPOT);
+    size_t foodUsed = observation->GetFoodUsed();
 
     // if supply depot count is 0 and we are reaching supply cap, build the first supply depot
     if (supplyDepotCount == 0) {
-        if (observation->GetFoodUsed() >= config.firstSupplyDepot) {
+        if (foodUsed >= config.firstSupplyDepot) {
             // build the first supply depot
             buildSupplyDepot = true;
             std::cout << "DEBUG: Build first supply depot\n";
         }
     } else if (supplyDepotCount == 1) {
-        if (observation->GetFoodUsed() >= config.secondSupplyDepot) {
+        if (foodUsed >= config.secondSupplyDepot) {
             // build the second supply depot
             buildSupplyDepot = true;
             std::cout << "DEBUG: Build second supply depot\n";
         }
     }
 
-    return (buildSupplyDepot == true) && (TryBuildStructure(ABILITY_ID::BUILD_SUPPLYDEPOT));
+    if (foodUsed >= config.nonStopSupplyDepot) {
+        // build supply depots non-stop
+        buildSupplyDepot = true;
+        std::cout << "DEBUG: None stop supply depot production" << std::endl;
+    }
+
+    return buildSupplyDepot && (TryBuildStructure(ABILITY_ID::BUILD_SUPPLYDEPOT));
 }
 
 bool Bot::TryBuildBarracks() {
@@ -299,7 +309,7 @@ bool Bot::TryBuildRefinery() {
 
         if (!builder_unit) { return false; }
 
-        // get the nearest vespene geyser
+        // get the nearest Vespene geyser
         const Unit *vespene_geyser = FindNearestRequestedUnit(builder_unit->pos, Unit::Alliance::Neutral,
                                                               UNIT_TYPEID::NEUTRAL_VESPENEGEYSER);
 

@@ -13,6 +13,7 @@ public:
     // supply depots
     const int firstSupplyDepot;
     const int secondSupplyDepot;
+    const int nonStopSupplyDepot;
 
     // barracks
     const int firstBarracks;
