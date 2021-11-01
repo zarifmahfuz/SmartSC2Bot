@@ -53,6 +53,13 @@ void Bot::OnUnitIdle(const Unit *unit) {
             break;
         }
     }
+
+    if (unit == nonStopMarineProductionBarrack && startMarineProduction) {
+        // start non-stop Marine production for the 2nd barrack
+        Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
+        std::cout << "DEBUG: 2nd Barrack, Start non-stop Marine production" << std::endl;
+
+    }
 }
 
 void Bot::OnUnitCreated(const Unit *unit) {
@@ -66,6 +73,8 @@ void Bot::OnUnitCreated(const Unit *unit) {
                 Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, game_info.enemy_start_locations.front());
                 std::cout << "DEBUG: Sending an SCV to scout\n";
             }
+
+            break;
         }
         case UNIT_TYPEID::TERRAN_BARRACKS: {
             size_t num_barracks = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
@@ -74,6 +83,12 @@ void Bot::OnUnitCreated(const Unit *unit) {
                 Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
                 std::cout << "DEBUG: Upgrade first Barracks to Reactor\n";
             }
+
+            break;
+        }
+
+        case UNIT_TYPEID::TERRAN_MARINE: {
+            Actions()->UnitCommand(unit, ABILITY_ID::EFFECT_STIM_MARAUDER);
         }
         default: {
             break;
@@ -97,9 +112,21 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
                 // This should work because barrack is not doing at this point (right after it's built)
                 Actions()->UnitCommand(unit, ABILITY_ID::BUILD_TECHLAB_BARRACKS);
                 std::cout << "DEBUG: Add Tech Lab to second barrack" << std::endl;
+                nonStopMarineProductionBarrack = unit;
 
                 break;
             }
+        }
+
+        case UNIT_TYPEID::TERRAN_BARRACKSTECHLAB: {
+            size_t num_barracks = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
+            if (num_barracks == 2) {
+                // After the Tech Lab has been built on the 2nd barrack, research Stimpack
+                Actions()->UnitCommand(unit, ABILITY_ID::RESEARCH_STIMPACK);
+
+                startMarineProduction = true; // start non-stop marine production after Stimpack is researched
+            }
+
         }
         default: {
             break;
