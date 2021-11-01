@@ -17,6 +17,7 @@ void Bot::OnStep() {
     TryBuildBarracks();
     TryBuildRefinery();
     TryBuildCommandCenter();
+    TryBuildFactory();
 }
 
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
@@ -272,6 +273,11 @@ bool Bot::TryBuildRefinery() {
             buildRefinery = true;
             std::cout << "DEBUG: Build first refinery\n";
         }
+    } else if (refineryCount == 1) {
+        if (Observation()->GetFoodUsed() >= config.secondRefinery) {
+            buildRefinery = true;
+            std::cout << "DEBUG: Build 2nd refinery" << std::endl;
+        }
     }
 
     if (buildRefinery) {
@@ -324,6 +330,22 @@ bool Bot::TryBuildCommandCenter() {
     return (buildCommand == true) ? (TryBuildStructure(ABILITY_ID::BUILD_COMMANDCENTER)) : false;
 }
 
+bool Bot::TryBuildFactory() {
+    const ObservationInterface *observation = Observation();
+    bool buildFactory = false;
+    size_t factoryCount = CountUnitType(UNIT_TYPEID::TERRAN_FACTORY);
+
+    // if factory count is 0, build the first factory
+    if (factoryCount == 0) {
+        if (observation->GetFoodUsed() >= config.firstFactory) {
+            // build the first factory
+            buildFactory = true;
+            std::cout << "DEBUG: Build first factory depot\n";
+        }
+    }
+
+    return buildFactory && (TryBuildStructure(ABILITY_ID::BUILD_FACTORY));
+}
 
 bool Bot::TryUpgradeStructure(ABILITY_ID ability_type_for_structure) {
 

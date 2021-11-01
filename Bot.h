@@ -35,6 +35,7 @@ public:
     bool TryBuildSupplyDepot();
     bool TryBuildBarracks();
     bool TryBuildRefinery();
+    bool TryBuildFactory();
 
     bool TryBuildCommandCenter();
     bool TryUpgradeCommand();
