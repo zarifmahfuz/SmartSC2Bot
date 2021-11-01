@@ -2,6 +2,7 @@
 #include "Bot.h"
 #include <iostream>
 #include <vector>
+#include <algorithm>
 
 Bot::Bot(const BotConfig &config)
         : config(config) {}
@@ -44,6 +45,15 @@ void Bot::OnUnitIdle(const Unit *unit) {
             Actions()->UnitCommand(unit, ABILITY_ID::SMART, mineral_target);
             break;
         }
+        case UNIT_TYPEID::TERRAN_BARRACKS: {
+            // do not add the tag if it is already present
+            auto p = std::find( begin(barracks_tags), end(barracks_tags), unit->tag);
+            if (p == end(barracks_tags)) {
+                // add the barracks tag to barracks_tags
+                barracks_tags.push_back(unit->tag);
+            }
+            break;
+        }
         case UNIT_TYPEID::TERRAN_BARRACKSREACTOR: {
             // start non-stop Marine production
             Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
@@ -82,19 +92,7 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
             CommandSCVs(2, unit);
             std::cout << "DEBUG: Assign workers on Refinery\n";
         }
-        case UNIT_TYPEID::TERRAN_BARRACKS: {
-            // size_t num_barracks = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
-            // if ( num_barracks == 1 ) {
-            //     // upgrade the first Barracks to a Reactor immediately after it finishes building
-            //     Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
-            //     std::cout << "DEBUG: Upgrade first Barracks to Reactor\n";
-            // }
-
-            // add the barracks tag to barracks_tags
-            barracks_tags.push_back(unit->tag);
-            std::cout << "WHAT IS A BARRACK'S ADD ON TAG INITIALLY? " << unit->add_on_tag << std::endl;
-            break;
-        }
+        
         default: {
             break;
         }
@@ -309,6 +307,8 @@ bool Bot::TryBuildBarracksReactor(size_t n) {
     // if the n'th barracks has been built
     if (n <= barracks_tags.size()) {
         const Unit *unit = Observation()->GetUnit(barracks_tags.at(n-1));
+
+        std::cout << "DEBUG: BARRACKS_TAGS SIZE: " << barracks_tags.size() << "\n";
 
         // when the Barracks has no add ons, it's add on tag is 0
         if ( unit->is_alive && (unit->add_on_tag == 0) ) {
