@@ -21,6 +21,10 @@ void Bot::OnStep() {
 
     // attach Reactor to the first Barracks
     TryBuildBarracksReactor(1);
+
+    if (marine_prod_first_barracks) {
+        TryStartMarineProd(1);
+    }
 }
 
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
@@ -55,9 +59,9 @@ void Bot::OnUnitIdle(const Unit *unit) {
             break;
         }
         case UNIT_TYPEID::TERRAN_BARRACKSREACTOR: {
-            // start non-stop Marine production
-            Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
-            std::cout << "DEBUG: Start non-stop Marine production\n";
+            // should start Marine production on the first Barracks
+            marine_prod_first_barracks = true;
+            std::cout << "DEBUG: Reactor complete. Start non-stop Marine production\n";
             break;
         }
 
@@ -78,6 +82,7 @@ void Bot::OnUnitCreated(const Unit *unit) {
                 Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, game_info.enemy_start_locations.front());
                 std::cout << "DEBUG: Sending an SCV to scout\n";
             }
+            break;
         }
         default: {
             break;
@@ -92,7 +97,6 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
             CommandSCVs(2, unit);
             std::cout << "DEBUG: Assign workers on Refinery\n";
         }
-        
         default: {
             break;
         }
@@ -308,13 +312,27 @@ bool Bot::TryBuildBarracksReactor(size_t n) {
     if (n <= barracks_tags.size()) {
         const Unit *unit = Observation()->GetUnit(barracks_tags.at(n-1));
 
-        std::cout << "DEBUG: BARRACKS_TAGS SIZE: " << barracks_tags.size() << "\n";
-
         // when the Barracks has no add ons, it's add on tag is 0
         if ( unit->is_alive && (unit->add_on_tag == 0) ) {
             // attach a Reactor to this Barracks
             Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
             std::cout << "DEBUG: Upgrade " << n << "'th Barracks to Reactor\n";
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Bot::TryStartMarineProd(size_t n) {
+    if (n < 1) { return false; }
+
+    // if the n'th barracks has been built
+    if (n <= barracks_tags.size()) {
+        const Unit *unit = Observation()->GetUnit(barracks_tags.at(n-1));
+        if ( unit->orders.size() == 0 ) {
+            // the barracks is currently idle - order marine production
+            Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
+            std::cout << "DEBUG: Barracks #" << n << " trains Marine\n";
         }
     }
 }
