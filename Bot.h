@@ -40,6 +40,12 @@ public:
     bool TryBuildCommandCenter();
     bool TryUpgradeCommand();
 
+    // trys to attach a Reactor to the n'th Barracks
+    bool TryBuildBarracksReactor(size_t n);
+
+    // starts Marine production on the n'th Barracks
+    bool TryStartMarineProd(size_t n);
+
     Tag first_command_center; // tag of the first command center
     
     // issues a command to n number of SCVs
@@ -52,6 +58,11 @@ private:
     const Unit *thirdBarrack = nullptr;        // store 3rd barrack info
     bool startMarineProductionSecondBarrack = false; // should the 2nd barrack start marine production
     bool startMarineProductionThirdBarrack = false; // should the 2nd barrack start marine production
+    // represents barracks; index i represents (i+1)'th barracks in the game
+    std::vector<Tag> barracks_tags;
+
+    // specifies whether we should start marine production on the first barracks
+    bool marine_prod_first_barracks = false;
 };
 
 #endif //BASICSC2BOT_BOT_H
