@@ -47,8 +47,10 @@ public:
 private:
     BotConfig config;
 
-    const Unit *nonStopMarineProductionBarrack; // store which barrack will be doing non-stop marine production
-    bool startMarineProduction = false;         // should that barrack start marine production
+    const Unit *secondBarrack = nullptr;         // store 2nd barrack info
+    const Unit *thirdBarrack = nullptr;        // store 3rd barrack info
+    bool startMarineProductionSecondBarrack = false; // should the 2nd barrack start marine production
+    bool startMarineProductionThirdBarrack = false; // should the 2nd barrack start marine production
 };
 
 #endif //BASICSC2BOT_BOT_H

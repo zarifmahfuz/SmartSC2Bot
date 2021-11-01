@@ -42,22 +42,24 @@ void Bot::OnUnitIdle(const Unit *unit) {
             Actions()->UnitCommand(unit, ABILITY_ID::SMART, mineral_target);
             break;
         }
-        case UNIT_TYPEID::TERRAN_BARRACKSREACTOR: {
-            // start non-stop Marine production
-            Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
-            std::cout << "DEBUG: Start non-stop Marine production\n";
-            break;
-        }
+//        case UNIT_TYPEID::TERRAN_BARRACKSREACTOR: {
+//            // start non-stop Marine production
+//            Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
+//            std::cout << "DEBUG: Start non-stop Marine production\n";
+//            break;
+//        }
 
         default: {
             break;
         }
     }
 
-    if (unit == nonStopMarineProductionBarrack && startMarineProduction) {
+    // if the 2nd and 3rd barracks are idle and ready to start producing marines, do it
+    if ((unit == secondBarrack && startMarineProductionSecondBarrack) ||
+        (unit == thirdBarrack && startMarineProductionThirdBarrack)) {
         // start non-stop Marine production for the 2nd barrack
         Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
-        std::cout << "DEBUG: 2nd Barrack, Start non-stop Marine production" << std::endl;
+        std::cout << "DEBUG: 2nd or 3rd Barrack, Start non-stop Marine production" << std::endl;
 
     }
 }
@@ -102,6 +104,7 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
             // when a Refinery is first created it already has one worker mining gas, need to assign two more
             CommandSCVs(2, unit);
             std::cout << "DEBUG: Assign workers on Refinery\n";
+            break;
         }
 
         case UNIT_TYPEID::TERRAN_BARRACKS: {
@@ -109,24 +112,41 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
 
             if (num_barracks == 2) {
                 // add the techLab addon to the 2nd barrack
-                // This should work because barrack is not doing at this point (right after it's built)
+                // The Barrack must be idle to do this
                 Actions()->UnitCommand(unit, ABILITY_ID::BUILD_TECHLAB_BARRACKS);
-                std::cout << "DEBUG: Add Tech Lab to second barrack" << std::endl;
-                nonStopMarineProductionBarrack = unit;
+                std::cout << "DEBUG: Add Tech Lab to 2nd barrack" << std::endl;
+                secondBarrack = unit;
 
-                break;
+            } else if (num_barracks == 3) {
+                // add the Rector addon to the 3rd barrack
+                // The Barrack must be idle to do this
+                Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
+                std::cout << "DEBUG: Add Reactor to 3rd barrack" << std::endl;
+                thirdBarrack = unit;
             }
+
+            break;
         }
 
         case UNIT_TYPEID::TERRAN_BARRACKSTECHLAB: {
             size_t num_barracks = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
-            if (num_barracks == 2) {
+            if (num_barracks >= 2 && secondBarrack != nullptr) {
                 // After the Tech Lab has been built on the 2nd barrack, research Stimpack
+                // this will research stimpack on the 2nd barrack's techlab, for now
+                // If there are more techlabs it may not be the 2nd barrack
                 Actions()->UnitCommand(unit, ABILITY_ID::RESEARCH_STIMPACK);
 
-                startMarineProduction = true; // start non-stop marine production after Stimpack is researched
+                startMarineProductionSecondBarrack = true; // start non-stop marine production after Stimpack is researched
             }
-
+            break;
+        }
+        case UNIT_TYPEID::TERRAN_BARRACKSREACTOR: {
+            size_t num_barracks = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
+            if (num_barracks >= 3 && thirdBarrack != nullptr) {
+                // After the Reactor is built on the 3rd barrack start non-stop marine production
+                startMarineProductionThirdBarrack = true;
+            }
+            break;
         }
         default: {
             break;
@@ -226,6 +246,15 @@ bool Bot::TryBuildBarracks() {
             // if supply >= 19 build the second barrack
             buildBarracks = true;
             std::cout << "DEBUG: Build 2nd barrack" << std::endl;
+        }
+    }
+
+    // build the 3rd barrack
+    if (barracksCount == 2) {
+        if (Observation()->GetFoodUsed() >= config.thirdBarracks) {
+            // if supply >= 23 build the second barrack
+            buildBarracks = true;
+            std::cout << "DEBUG: Build 3rd barrack" << std::endl;
         }
     }
 
