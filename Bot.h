@@ -73,6 +73,8 @@ private:
     // Try to build a Starport.
     bool TryBuildStarport();
 
+    // Try to research the Combat Shield upgrade on the Barracks' Tech Lab.
+    bool TryResearchCombatShield();
 };
 
 #endif //BASICSC2BOT_BOT_H

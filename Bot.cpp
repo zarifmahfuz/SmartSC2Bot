@@ -30,6 +30,7 @@ void Bot::OnStep() {
     TryResearchInfantryWeapons();
     TryBuildMissileTurret();
     TryBuildStarport();
+    TryResearchCombatShield();
 }
 
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
@@ -413,3 +414,15 @@ bool Bot::TryBuildStarport() {
     });
 }
 
+bool Bot::TryResearchCombatShield() {
+    const auto *observation = Observation();
+
+    auto tech_labs = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_BARRACKSTECHLAB));
+    if (tech_labs.empty())
+        return false;
+
+    auto *tech_lab = tech_labs[0];
+    Actions()->UnitCommand(tech_lab, ABILITY_ID::RESEARCH_COMBATSHIELD);
+    std::cout << "DEBUG: Researching Combat Shield on Barracks' Tech Lab\n";
+    return true;
+}
