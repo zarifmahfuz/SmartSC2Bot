@@ -31,6 +31,7 @@ void Bot::OnStep() {
     TryBuildMissileTurret();
     TryBuildStarport();
     TryBuildReactorStarport();
+    TryBuildMedivac();
     TryResearchCombatShield();
 }
 
@@ -430,6 +431,19 @@ bool Bot::TryBuildReactorStarport() {
 
     Actions()->UnitCommand(starport, ABILITY_ID::BUILD_REACTOR_STARPORT);
     std::cout << "DEBUG: Building Reactor Starport\n";
+    return true;
+}
+
+bool Bot::TryBuildMedivac() {
+    const auto *observation = Observation();
+
+    auto reactor_starports = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_STARPORTREACTOR));
+    if (reactor_starports.empty())
+        return false;
+    auto *reactor_starport = reactor_starports[0];
+
+    Actions()->UnitCommand(reactor_starport, ABILITY_ID::TRAIN_MEDIVAC);
+    std::cout << "DEBUG: Building Medivac at Reactor Starport\n";
     return true;
 }
 
