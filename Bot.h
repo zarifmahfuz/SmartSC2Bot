@@ -58,7 +58,13 @@ private:
     // specifies whether we should start marine production on the first barracks
     bool marine_prod_first_barracks = false;
 
+    // Try to build an Engineering Bay.
     bool TryBuildEngineeringBay();
+
+    // Try to research the Infantry Weapons Level 1 upgrade using the Engineering Bay.
+    bool TryResearchInfantryWeapons();
+
+    // Try to build a Starport.
     bool TryBuildStarport();
 };
 

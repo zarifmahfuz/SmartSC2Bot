@@ -27,6 +27,7 @@ void Bot::OnStep() {
     }
 
     TryBuildEngineeringBay();
+    TryResearchInfantryWeapons();
     TryBuildStarport();
 }
 
@@ -353,6 +354,30 @@ bool Bot::TryBuildEngineeringBay() {
         return false;
 
     return TryBuildStructure(sc2::ABILITY_ID::BUILD_ENGINEERINGBAY);
+}
+
+bool Bot::TryResearchInfantryWeapons() {
+    const auto *observation = Observation();
+
+    // Only research if the Engineering Bay exists
+    auto engineering_bays = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_ENGINEERINGBAY));
+    if (engineering_bays.empty())
+        return false;
+
+    auto *engineering_bay = engineering_bays[0];
+
+    // Return if Engineering Bay is not yet built,
+    // the Engineering Bay already has orders,
+    // or the upgrade is already complete
+    if (engineering_bay->build_progress < 1.0F
+        || !engineering_bay->orders.empty()
+        || engineering_bay->attack_upgrade_level >= 1)
+        return false;
+
+    // Make upgrade command
+    Actions()->UnitCommand(engineering_bay, ABILITY_ID::RESEARCH_TERRANINFANTRYWEAPONSLEVEL1);
+    std::cout << "DEBUG: Researching Infantry Weapons Level 1 on Engineering Bay\n";
+    return true;
 }
 
 bool Bot::TryBuildStarport() {
