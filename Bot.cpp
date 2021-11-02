@@ -28,6 +28,7 @@ void Bot::OnStep() {
 
     TryBuildEngineeringBay();
     TryResearchInfantryWeapons();
+    TryBuildMissileTurret();
     TryBuildStarport();
 }
 
@@ -356,15 +357,18 @@ bool Bot::TryBuildEngineeringBay() {
     return TryBuildStructure(sc2::ABILITY_ID::BUILD_ENGINEERINGBAY);
 }
 
-bool Bot::TryResearchInfantryWeapons() {
-    const auto *observation = Observation();
-
-    // Only research if the Engineering Bay exists
-    auto engineering_bays = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_ENGINEERINGBAY));
+const Unit *Bot::GetEngineeringBay() {
+    auto engineering_bays = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_ENGINEERINGBAY));
     if (engineering_bays.empty())
-        return false;
+        return nullptr;
+    return engineering_bays[0];
+}
 
-    auto *engineering_bay = engineering_bays[0];
+bool Bot::TryResearchInfantryWeapons() {
+    // Only research if the Engineering Bay exists
+    auto *engineering_bay = GetEngineeringBay();
+    if (!engineering_bay)
+        return false;
 
     // Return if Engineering Bay is not yet built,
     // the Engineering Bay already has orders,
@@ -378,6 +382,19 @@ bool Bot::TryResearchInfantryWeapons() {
     Actions()->UnitCommand(engineering_bay, ABILITY_ID::RESEARCH_TERRANINFANTRYWEAPONSLEVEL1);
     std::cout << "DEBUG: Researching Infantry Weapons Level 1 on Engineering Bay\n";
     return true;
+}
+
+bool Bot::TryBuildMissileTurret() {
+    // Only build if there is not already a Missile Turret
+    if (CountUnitType(UNIT_TYPEID::TERRAN_MISSILETURRET) > 0)
+        return false;
+
+    // Only build if the Engineering Bay exists
+    auto *engineering_bay = GetEngineeringBay();
+    if (!engineering_bay)
+        return false;
+
+    return TryBuildStructure(ABILITY_ID::BUILD_MISSILETURRET);
 }
 
 bool Bot::TryBuildStarport() {

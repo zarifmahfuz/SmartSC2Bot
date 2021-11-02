@@ -61,11 +61,18 @@ private:
     // Try to build an Engineering Bay.
     bool TryBuildEngineeringBay();
 
+    // Return the first built Engineering Bay if it exists, or nullptr if none exists.
+    const Unit *GetEngineeringBay();
+
     // Try to research the Infantry Weapons Level 1 upgrade using the Engineering Bay.
     bool TryResearchInfantryWeapons();
 
+    // Try to build a Missile Turret using the Engineering Bay.
+    bool TryBuildMissileTurret();
+
     // Try to build a Starport.
     bool TryBuildStarport();
+
 };
 
 #endif //BASICSC2BOT_BOT_H
