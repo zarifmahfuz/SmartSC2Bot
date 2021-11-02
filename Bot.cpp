@@ -30,6 +30,7 @@ void Bot::OnStep() {
     TryResearchInfantryWeapons();
     TryBuildMissileTurret();
     TryBuildStarport();
+    TryBuildReactorStarport();
     TryResearchCombatShield();
 }
 
@@ -412,6 +413,24 @@ bool Bot::TryBuildStarport() {
     return std::any_of(factories.begin(), factories.end(), [this](const auto &factory) {
         return factory->build_progress >= 1.0F && TryBuildStructure(sc2::ABILITY_ID::BUILD_STARPORT);
     });
+}
+
+bool Bot::TryBuildReactorStarport() {
+    const auto *observation = Observation();
+
+    // Only build one Reactor Starport
+    if (CountUnitType(sc2::UNIT_TYPEID::TERRAN_STARPORTREACTOR) > 0)
+        return false;
+
+    // Get existing Starport
+    auto starports = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_STARPORT));
+    if (starports.empty())
+        return false;
+    auto *starport = starports[0];
+
+    Actions()->UnitCommand(starport, ABILITY_ID::BUILD_REACTOR_STARPORT);
+    std::cout << "DEBUG: Building Reactor Starport\n";
+    return true;
 }
 
 bool Bot::TryResearchCombatShield() {

@@ -73,6 +73,9 @@ private:
     // Try to build a Starport.
     bool TryBuildStarport();
 
+    // Try to build a Reactor Starport on the existing Starport.
+    bool TryBuildReactorStarport();
+
     // Try to research the Combat Shield upgrade on the Barracks' Tech Lab.
     bool TryResearchCombatShield();
 };
