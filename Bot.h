@@ -38,6 +38,12 @@ public:
     bool TryBuildCommandCenter();
     bool TryUpgradeCommand();
 
+    // trys to attach a Reactor to the n'th Barracks
+    bool TryBuildBarracksReactor(size_t n);
+
+    // starts Marine production on the n'th Barracks
+    bool TryStartMarineProd(size_t n);
+
     Tag first_command_center; // tag of the first command center
     
     // issues a command to n number of SCVs
@@ -53,9 +59,17 @@ public:
   
 private:
     BotConfig config;
+
     std::vector<Point2D> mineralFields;
     std::vector<std::vector<Point2D>> clusters;// clusters representing bases
     std::map<Point2D, bool> bases; // map with the center of each cluster and whether it has a command center or not
+
+    // represents barracks; index i represents (i+1)'th barracks in the game
+    std::vector<Tag> barracks_tags;
+
+    // specifies whether we should start marine production on the first barracks
+    bool marine_prod_first_barracks = false;
+
 };
 
 #endif //BASICSC2BOT_BOT_H
