@@ -42,9 +42,20 @@ public:
     
     // issues a command to n number of SCVs
     void CommandSCVs(int n, const Unit *target, ABILITY_ID ability = ABILITY_ID::SMART);
+
+    GameInfo getGameInfo();
+
+    void FindBaseLocations();
+    double dist(Point2D p1, Point2D p2);
+    bool isMineral(const Unit *u);
+    Point2D computeClusterCenter(const std::vector<Point2D> &cluster);
+    
   
 private:
     BotConfig config;
+    std::vector<Point2D> mineralFields;
+    std::vector<std::vector<Point2D>> clusters;// clusters representing bases
+    std::map<Point2D, bool> bases; // map with the center of each cluster and whether it has a command center or not
 };
 
 #endif //BASICSC2BOT_BOT_H

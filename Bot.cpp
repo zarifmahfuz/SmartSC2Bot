@@ -10,6 +10,8 @@ void Bot::OnGameStart() {
     std::cout << "Hello World!" << std::endl;
     Units units = Observation()->GetUnits(Unit::Alliance::Self,  IsUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER));
     first_command_center = units[0]->tag; // get the tag of the command center the game starts with
+    getGameInfo();
+    FindBaseLocations();
 }
 
 void Bot::OnStep() {
@@ -115,6 +117,7 @@ const Unit *Bot::FindNearestRequestedUnit(const Point2D &start, Unit::Alliance a
 bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type) {
     const ObservationInterface *observation = Observation();
     
+    
     // get a unit to build the structure
     const Unit *builder_unit = nullptr;
     Units units = observation->GetUnits(Unit::Alliance::Self, IsUnit(unit_type));
@@ -132,14 +135,27 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
         }
     }
 
+    
+
     float rx = GetRandomScalar();
     float ry = GetRandomScalar();
 
-    // issue a command to the selected unit
-    Actions()->UnitCommand(builder_unit,
+
+    switch (ability_type_for_structure)
+    {
+    case ABILITY_ID::BUILD_COMMANDCENTER:
+        
+       break;
+    
+    default:
+        Actions()->UnitCommand(builder_unit,
                            ability_type_for_structure,
                            Point2D(builder_unit->pos.x + rx * 15.0f, builder_unit->pos.y + ry * 15.0f));
+        break;
+    }
 
+    // issue a command to the selected unit
+    
     return true;
 }
 
@@ -252,6 +268,8 @@ bool Bot::TryUpgradeStructure(ABILITY_ID ability_type_for_structure){
             Actions()->UnitCommand(Observation()->GetUnit(first_command_center), ABILITY_ID::MORPH_ORBITALCOMMAND);
             return true;
         }
+        default:
+            break;
     }
     return false;
 }
@@ -292,5 +310,138 @@ void Bot::CommandSCVs(int n, const Unit *target, ABILITY_ID ability) {
         }
         // finally, issue the command
         Actions()->UnitCommand(scv_units, ability, target);
+    }
+}
+
+// for now, gets the start locations
+// returns a GameInfo struct
+GameInfo Bot::getGameInfo(){
+    const ObservationInterface *observation = Observation();
+    GameInfo info = observation->GetGameInfo();
+
+    std::vector<Point2D> start_locations = info.start_locations;
+
+    for (const Point2D &p: start_locations){
+        std::cout << p.x << " " << p.y << std::endl;
+    }
+ 
+    return info;
+}
+
+// calculate the euclidean distance between two points
+double Bot::dist(Point2D p1, Point2D p2){
+    
+	double x = p1.x - p2.x; //calculating number to square in next step
+	double y = p1.y - p2.y;
+	double dist;
+
+	dist = pow(x, 2) + pow(y, 2);       //calculating Euclidean distance
+	dist = sqrt(dist);                  
+
+	return dist;
+}
+
+Point2D computeClusterCenter(const std::vector<Point2D> &cluster){
+    Point2D center = Point2D(0,0);
+    for (const Point2D &p: cluster){
+        center.x+=p.x;
+        center.y+=p.y;
+    }
+    center.x/=cluster.size();
+    center.y/=cluster.size();
+
+    return center;
+}
+// finds the positions of all minerals where the base locations could be
+void Bot::FindBaseLocations(){
+    const ObservationInterface *observation = Observation();
+
+    for(auto & u: observation->GetUnits()){
+        if (isMineral(u)){
+            //std::cout << "mineral field at:" << u->pos.x << " " << u->pos.y << std::endl;
+            mineralFields.push_back(Point2D(u->pos.x,u->pos.y));
+        }
+    }
+
+    // get start location
+    Point2D start_location = observation->GetStartLocation();
+    double dist_threshold = 10;
+
+    // find starting mineral cluster based on start location
+    std::vector<Point2D> start_cluster;
+
+    for (const Point2D &p: mineralFields){
+        if (dist(start_location,p)<=dist_threshold){
+            start_cluster.push_back(p);
+            
+       }
+    }
+    clusters.push_back(start_cluster);
+    
+    
+    // find other clusters based on distance threshold
+    bool skip = false;
+    std::vector<Point2D> cluster;
+    double distance;
+    for (const Point2D &p1: mineralFields){
+         // prevent finding duplicate clusters
+         for(const std::vector<Point2D> &v: clusters){
+            if (!skip){
+                for (const Point2D &p: v){
+                    if (p==p1){
+                        skip = true;
+                        break;
+                    }
+                }
+            }
+         }
+        // find unique cluster based on distance threshold
+        if (!skip){
+            cluster.push_back(p1);
+            for (const Point2D &p2: mineralFields){
+                distance  = dist(p1,p2);
+                if (distance <= dist_threshold && p1 != p2 ){
+                     cluster.push_back(p2);
+                }
+            }
+            clusters.push_back(cluster);
+            cluster.clear();
+        }
+        skip = false;
+    }
+
+    // print for debug
+    for (const std::vector<Point2D> &s: clusters){
+         std::cout << "new cluster" << std::endl;
+         for (const Point2D &p: s){
+             std::cout << p.x << " " << p.y << std::endl;
+         }
+    }
+
+    // init bases
+    Point2D center;
+    for (const std::vector<Point2D> &cluster: clusters){
+        center = computeClusterCenter(cluster);
+        bases[center] = false;
+    }
+    
+    Point2D start_center = computeClusterCenter(start_cluster);
+    bases[start_center] = true;
+    
+}
+
+
+// checks if a unit is a mineral
+bool Bot::isMineral(const Unit *u){
+    UNIT_TYPEID unit_type = u->unit_type;
+    switch (unit_type) 
+    {
+        case UNIT_TYPEID::NEUTRAL_MINERALFIELD         : return true;
+        case UNIT_TYPEID::NEUTRAL_MINERALFIELD750      : return true;
+        case UNIT_TYPEID::NEUTRAL_RICHMINERALFIELD     : return true;
+        case UNIT_TYPEID::NEUTRAL_RICHMINERALFIELD750  : return true;
+        case UNIT_TYPEID::NEUTRAL_LABMINERALFIELD		: return true;
+        case UNIT_TYPEID::NEUTRAL_LABMINERALFIELD750	: return true;
+        default: return false;
     }
 }
