@@ -57,6 +57,30 @@ private:
 
     // specifies whether we should start marine production on the first barracks
     bool marine_prod_first_barracks = false;
+
+    // Try to build an Engineering Bay.
+    bool TryBuildEngineeringBay();
+
+    // Return the first built Engineering Bay if it exists, or nullptr if none exists.
+    const Unit *GetEngineeringBay();
+
+    // Try to research the Infantry Weapons Level 1 upgrade using the Engineering Bay.
+    bool TryResearchInfantryWeapons();
+
+    // Try to build a Missile Turret using the Engineering Bay.
+    bool TryBuildMissileTurret();
+
+    // Try to build a Starport.
+    bool TryBuildStarport();
+
+    // Try to build a Reactor Starport on the existing Starport.
+    bool TryBuildReactorStarport();
+
+    // Try to build a Medivac
+    bool TryBuildMedivac();
+
+    // Try to research the Combat Shield upgrade on the Barracks' Tech Lab.
+    bool TryResearchCombatShield();
 };
 
 #endif //BASICSC2BOT_BOT_H
