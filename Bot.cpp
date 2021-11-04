@@ -437,6 +437,10 @@ bool Bot::TryBuildReactorStarport() {
 bool Bot::TryBuildMedivac() {
     const auto *observation = Observation();
 
+    // Only build up to two medivacs at a time
+    if (CountUnitType(sc2::UNIT_TYPEID::TERRAN_MEDIVAC) > config.maxMedivacs)
+        return false;
+
     auto reactor_starports = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_STARPORTREACTOR));
     if (reactor_starports.empty())
         return false;

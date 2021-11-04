@@ -14,3 +14,5 @@ SCV:
 EngineeringBay:
     minSupply: 45 # minimum supply level to build the engineering bay at
     maxSupply: 50 # maximum supply level to build the engineering bay at
+Medivac:
+    maxUnits: 2   # maximum number of medivacs to have at a time

@@ -20,5 +20,6 @@ BotConfig::BotConfig(const YAML::Node &node)
           secondCommandCenter( node["CommandCenter"]["second"].as<int>() ),
           firstScout( node["SCV"]["scout"]["first"].as<int>() ),
           engineeringBayMinSupply(node["EngineeringBay"]["minSupply"].as<int>()),
-          engineeringBayMaxSupply(node["EngineeringBay"]["maxSupply"].as<int>()) {
+          engineeringBayMaxSupply(node["EngineeringBay"]["maxSupply"].as<int>()),
+          maxMedivacs(node["Medivac"]["maxUnits"].as<int>()) {
 }

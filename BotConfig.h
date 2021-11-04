@@ -17,6 +17,7 @@ public:
     const int firstScout;
     const int engineeringBayMinSupply;
     const int engineeringBayMaxSupply;
+    const int maxMedivacs;
 
 private:
     explicit BotConfig(const YAML::Node&);
