@@ -4,6 +4,7 @@
 #include <sc2api/sc2_api.h>
 #include "BotConfig.h"
 
+
 using namespace sc2;
 
 class Bot : public Agent {
@@ -55,6 +56,8 @@ public:
     double dist(Point2D p1, Point2D p2);
     bool isMineral(const Unit *u);
     Point2D computeClusterCenter(const std::vector<Point2D> &cluster);
+    Point2D chooseNearbyBuildLocation(const Point2D &center, const double &radius);
+    double Convert(double degree);
     
   
 private:
@@ -62,8 +65,10 @@ private:
 
     std::vector<Point2D> mineralFields;
     std::vector<std::vector<Point2D>> clusters;// clusters representing bases
-    std::map<Point2D, bool> bases; // map with the center of each cluster and whether it has a command center or not
-
+    std::vector<Point2D> clusterCenters;
+    int numClusters;
+    std::set<Point2D> test;
+    //Bases *bases;
     // represents barracks; index i represents (i+1)'th barracks in the game
     std::vector<Tag> barracks_tags;
 

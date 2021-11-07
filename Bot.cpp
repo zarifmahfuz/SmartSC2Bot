@@ -63,7 +63,7 @@ void Bot::OnUnitIdle(const Unit *unit) {
         case UNIT_TYPEID::TERRAN_BARRACKSREACTOR: {
             // should start Marine production on the first Barracks
             marine_prod_first_barracks = true;
-            std::cout << "DEBUG: Reactor complete. Start non-stop Marine production\n";
+            //std::cout << "DEBUG: Reactor complete. Start non-stop Marine production\n";
             break;
         }
 
@@ -82,7 +82,7 @@ void Bot::OnUnitCreated(const Unit *unit) {
                 // send the SCV to scout
                 const GameInfo& game_info = Observation()->GetGameInfo();
                 Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, game_info.enemy_start_locations.front());
-                std::cout << "DEBUG: Sending an SCV to scout\n";
+                //std::cout << "DEBUG: Sending an SCV to scout\n";
             }
             break;
         }
@@ -97,7 +97,7 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
         case UNIT_TYPEID::TERRAN_REFINERY: {
             // when a Refinery is first created it already has one worker mining gas, need to assign two more
             CommandSCVs(2, unit);
-            std::cout << "DEBUG: Assign workers on Refinery\n";
+            //std::cout << "DEBUG: Assign workers on Refinery\n";
         }
         default: {
             break;
@@ -122,6 +122,65 @@ const Unit *Bot::FindNearestRequestedUnit(const Point2D &start, Unit::Alliance a
         }
     }
     return target;
+}
+
+Point2D Bot::computeClusterCenter(const std::vector<Point2D> &cluster){
+    Point2D center = Point2D(0,0);
+    for (const Point2D &p: cluster){
+        center.x+=p.x;
+        center.y+=p.y;
+    }
+    center.x/=cluster.size();
+    center.y/=cluster.size();
+
+    return center;
+}
+
+// convert degree to radians
+double Bot::Convert(double degree)
+{
+    double pi = 3.14159265359;
+    return (degree * (pi / 180));
+}
+
+// given a point and a radius, returns a buildable nearby location
+Point2D Bot::chooseNearbyBuildLocation(const Point2D &center, const double &radius){
+    Point2D build_location =  Point2D(center.x+radius,center.y);
+
+    // Point p2 = Point(0-radius,0);
+    // Point p3 = Point(0,0+radius);
+    // Point p4 = Point(0,0-radius);
+    double cs;
+    double sn;
+    double px;
+    double py;
+    double angle = 10;
+    double iter = 0;
+    double _radius = radius;
+    while (!Observation()->IsPathable(build_location) || !Observation()->IsPlacable(build_location)){
+        // change build location
+        double theta = Convert(angle);
+
+        cs = cos(theta);
+        sn = sin(theta);
+
+        px = build_location.x * cs - build_location.y * sn;
+        py = build_location.x * sn + build_location.y * cs;
+
+        build_location.x = px;
+        build_location.y = py;
+        ++iter;
+        if (iter == 36){
+            ++_radius;
+            build_location =  Point2D(center.x+_radius,center.y);
+            iter = 0;
+        }
+        //std::cout << "iter: " << iter << std::endl;
+    }
+    //std::cout << build_location.x << " " << build_location.y << std::endl;
+    //std::cout << px << " " << py << std::endl;
+    return build_location;
+
 }
 
 bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type) {
@@ -150,18 +209,52 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
     float rx = GetRandomScalar();
     float ry = GetRandomScalar();
 
+    Point2D closest_mineral; // center of closest mineral field to starting location
+    
+    // init centers
+    Point2D center1 = computeClusterCenter(clusters[0]);
+    Point2D center2 = computeClusterCenter(clusters[1]);
 
+    //init min distance found
+    double min = dist(center1,center2);
+    
+    double distance;
+    double radius = 7; // arbitrary distance from center of a cluster
+    Point2D build_location;
     switch (ability_type_for_structure)
     {
-    case ABILITY_ID::BUILD_COMMANDCENTER:
+        case ABILITY_ID::BUILD_COMMANDCENTER:
+            std::cout << "min distance: " << min << std::endl;
+            // find the center of the cluster that is closest
+            for (const Point2D &center2: clusterCenters){
+                distance = dist(center1,center2);
+                if (distance < min){
+                    //std::cout << "min distance: " << distance << " between" << center2.x << " " << center2.y << " and " << center1.x << " " << center2.y << std::endl;
+                    min = distance;
+                    closest_mineral = center2;
+                }
+            }
+            
+            std::cout << "closest mineral " << closest_mineral.x << " " << closest_mineral.y << std::endl;
+            build_location = chooseNearbyBuildLocation(closest_mineral,radius);
+            std::cout << "build location " << build_location.x << " " << build_location.y << std::endl;
+            if (Observation()->IsPlacable(build_location)){
+                std::cout << "congratsbbbdsjhc" << std::endl;
+            }
+            Actions()->UnitCommand(builder_unit,
+                            ability_type_for_structure,
+                            build_location);
+
+            // Actions()->UnitCommand(builder_unit,
+            //                 ability_type_for_structure,
+            //                 Point2D(builder_unit->pos.x + rx * 15.0f, builder_unit->pos.y + ry * 15.0f));
+            break;
         
-       break;
-    
-    default:
-        Actions()->UnitCommand(builder_unit,
-                           ability_type_for_structure,
-                           Point2D(builder_unit->pos.x + rx * 15.0f, builder_unit->pos.y + ry * 15.0f));
-        break;
+        default:
+            Actions()->UnitCommand(builder_unit,
+                            ability_type_for_structure,
+                            Point2D(builder_unit->pos.x + rx * 15.0f, builder_unit->pos.y + ry * 15.0f));
+            break;
     }
 
     // issue a command to the selected unit
@@ -179,13 +272,13 @@ bool Bot::TryBuildSupplyDepot() {
         if (observation->GetFoodUsed() >= config.firstSupplyDepot) {
             // build the first supply depot
             buildSupplyDepot = true;
-            std::cout << "DEBUG: Build first supply depot\n";
+            //std::cout << "DEBUG: Build first supply depot\n";
         }
     } else if (supplyDepotCount == 1) {
         if (observation->GetFoodUsed() >= config.secondSupplyDepot) {
             // build the second supply depot
             buildSupplyDepot = true;
-            std::cout << "DEBUG: Build second supply depot\n";
+            //std::cout << "DEBUG: Build second supply depot\n";
         }
     }
 
@@ -201,7 +294,7 @@ bool Bot::TryBuildBarracks() {
         if ( Observation()->GetFoodUsed() >= config.firstBarracks ) {
             // if supply is above a certain level, build the first barracks
             buildBarracks = true;
-            std::cout << "DEBUG: Build first barracks\n";
+            //std::cout << "DEBUG: Build first barracks\n";
         }
     }
 
@@ -216,7 +309,7 @@ bool Bot::TryBuildRefinery() {
     if (refineryCount == 0) {
         if ( Observation()->GetFoodUsed() >= config.firstRefinery ) {
             buildRefinery = true;
-            std::cout << "DEBUG: Build first refinery\n";
+            //std::cout << "DEBUG: Build first refinery\n";
         }
     }
 
@@ -254,13 +347,14 @@ bool Bot::TryBuildRefinery() {
 
 bool Bot::TryBuildCommandCenter(){
     const ObservationInterface *observation = Observation();
-
+    int command_cost = Observation()->GetUnitTypeData()[UnitTypeID(UNIT_TYPEID::TERRAN_COMMANDCENTER)].mineral_cost;
+    
     bool buildCommand = false;
 
     size_t commandCount = CountUnitType(UNIT_TYPEID::TERRAN_COMMANDCENTER);
 
     // build second command center at supply 19 (currently only builds 1 command center)
-    if (commandCount==1){
+    if (commandCount==1 ){
         if ( Observation()->GetFoodUsed() >= config.secondCommandCenter ) {
                 buildCommand = true;
                 std::cout << "DEBUG: Build second command center\n";
@@ -323,7 +417,7 @@ void Bot::CommandSCVs(int n, const Unit *target, ABILITY_ID ability) {
     }
 }
 
-<<<<<<< HEAD
+
 // for now, gets the start locations
 // returns a GameInfo struct
 GameInfo Bot::getGameInfo(){
@@ -352,17 +446,7 @@ double Bot::dist(Point2D p1, Point2D p2){
 	return dist;
 }
 
-Point2D computeClusterCenter(const std::vector<Point2D> &cluster){
-    Point2D center = Point2D(0,0);
-    for (const Point2D &p: cluster){
-        center.x+=p.x;
-        center.y+=p.y;
-    }
-    center.x/=cluster.size();
-    center.y/=cluster.size();
 
-    return center;
-}
 // finds the positions of all minerals where the base locations could be
 void Bot::FindBaseLocations(){
     const ObservationInterface *observation = Observation();
@@ -388,7 +472,8 @@ void Bot::FindBaseLocations(){
        }
     }
     clusters.push_back(start_cluster);
-    
+    test.insert(start_location);
+    ++numClusters;
     
     // find other clusters based on distance threshold
     bool skip = false;
@@ -416,28 +501,40 @@ void Bot::FindBaseLocations(){
                 }
             }
             clusters.push_back(cluster);
+            ++numClusters;
             cluster.clear();
         }
         skip = false;
     }
 
     // print for debug
-    for (const std::vector<Point2D> &s: clusters){
+    for (const std::vector<Point2D> s: clusters){
          std::cout << "new cluster" << std::endl;
          for (const Point2D &p: s){
              std::cout << p.x << " " << p.y << std::endl;
          }
     }
 
-    // init bases
+    Point2D temp = Observation()->GetUnit(first_command_center)->pos;
+    std::cout << "distance between starting center and field:" << dist(computeClusterCenter(clusters[0]),temp)<< std::endl;
+
     Point2D center;
-    for (const std::vector<Point2D> &cluster: clusters){
-        center = computeClusterCenter(cluster);
-        bases[center] = false;
+    for (const std::vector<Point2D> &p: clusters){
+        center = computeClusterCenter(p);
+        std::cout << "center: " << center.x << " " << center.y << std::endl;
+        clusterCenters.push_back(center);
     }
+    // init bases
     
-    Point2D start_center = computeClusterCenter(start_cluster);
-    bases[start_center] = true;
+    // Point2D center;
+    // bases = new Bases();
+    // for (const std::vector<Point2D> &cluster: clusters){
+    //     center = computeClusterCenter(cluster);
+    //     bases->bases[center] = false;
+    // }
+    
+    // Point2D start_center = computeClusterCenter(start_cluster);
+    // bases->bases[start_center] = true;
     
 }
 
@@ -468,7 +565,7 @@ bool Bot::TryBuildBarracksReactor(size_t n) {
         if ( unit->is_alive && (unit->add_on_tag == 0) ) {
             // attach a Reactor to this Barracks
             Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
-            std::cout << "DEBUG: Upgrade " << n << "'th Barracks to Reactor\n";
+            //std::cout << "DEBUG: Upgrade " << n << "'th Barracks to Reactor\n";
             return true;
         }
     }
@@ -484,7 +581,7 @@ bool Bot::TryStartMarineProd(size_t n) {
         if ( unit->orders.size() == 0 ) {
             // the barracks is currently idle - order marine production
             Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
-            std::cout << "DEBUG: Barracks #" << n << " trains Marine\n";
+            //std::cout << "DEBUG: Barracks #" << n << " trains Marine\n";
         }
 
     }
