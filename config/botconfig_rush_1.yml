@@ -1,0 +1,22 @@
+SupplyDepot:
+    first: 10
+    second: 15
+    third: 28
+    cont: 30
+Barracks:
+    first: 12
+    second: 19
+    third: 19
+Refinery:
+    first: 16     # build the first refinery at supply level 16
+CommandCenter:
+    second: 19     # build command center at supply level 19
+SCV:
+    scout:
+        first: 17   # send the 17th SCV to scout
+EngineeringBay:
+    minSupply: 45 # minimum supply level to build the engineering bay at
+    maxSupply: 50 # maximum supply level to build the engineering bay at
+Medivac:
+    maxUnits: 2   # maximum number of medivacs to have at a time
+    
