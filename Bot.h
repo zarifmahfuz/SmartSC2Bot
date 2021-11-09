@@ -53,25 +53,39 @@ public:
     GameInfo getGameInfo();
 
     void FindBaseLocations();
-    double dist(Point2D p1, Point2D p2);
     bool isMineral(const Unit *u);
-    Point2D computeClusterCenter(const std::vector<Point2D> &cluster);
-    Point2D chooseNearbyBuildLocation(const Point2D &center, const double &radius);
+    Point3D computeClusterCenter(const std::vector<Point3D> &cluster);
+    Point3D chooseNearbyBuildLocation(const Point3D &center, const double &radius);
     double Convert(double degree);
     
   
 private:
     BotConfig config;
 
-    std::vector<Point2D> mineralFields;
-    std::vector<std::vector<Point2D>> clusters;// clusters representing bases
-    std::vector<Point2D> clusterCenters;
+    std::vector<Point3D> mineralFields;
+    std::vector<std::vector<Point3D>> clusters;// clusters representing bases
+    std::vector<Point3D> clusterCenters;
     int numClusters;
-    std::set<Point2D> test;
+    // std::set<Point2D> test;
     //Bases *bases;
     // represents barracks; index i represents (i+1)'th barracks in the game
     std::vector<Tag> barracks_tags;
 
+    struct BuildCommand{
+        Point3D previous_build;
+        Point3D closest_mineral;
+        int previous_radius;
+        int iter;
+        double angle;
+        BuildCommand(){
+            previous_build = Point3D(0,0,0);
+            closest_mineral = Point3D(0,0,0);
+            previous_radius = 7;
+            iter = 0;
+            angle = 5;
+        }
+    };
+    BuildCommand *buildCommand;
     // specifies whether we should start marine production on the first barracks
     bool marine_prod_first_barracks = false;
 
