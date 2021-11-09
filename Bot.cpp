@@ -3,6 +3,8 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <climits>
+#include <string>
 
 Bot::Bot(const BotConfig &config)
         : config(config) {}
@@ -10,29 +12,28 @@ Bot::Bot(const BotConfig &config)
 void Bot::OnGameStart() {
     std::cout << "Hello World!" << std::endl;
     Units units = Observation()->GetUnits(Unit::Alliance::Self,  IsUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER));
-    first_command_center = units[0]->tag; // get the tag of the command center the game starts with
+    // get the tag of the command center the game starts with
+    command_center_tags.push_back(units[0]->tag);
 }
 
 void Bot::OnStep() {
-    TryBuildSupplyDepot();
-    TryBuildBarracks();
+    CommandCenterHandler();
+
+    SupplyDepotHandler();
+
+    BarracksHandler();
+
     TryBuildRefinery();
-    TryBuildCommandCenter();
 
-    // attach Reactor to the first Barracks
-    TryBuildBarracksReactor(1);
+    // TryBuildCommandCenter();
 
-    if (marine_prod_first_barracks) {
-        TryStartMarineProd(1);
-    }
-
-    TryBuildEngineeringBay();
-    TryResearchInfantryWeapons();
-    TryBuildMissileTurret();
-    TryBuildStarport();
-    TryBuildReactorStarport();
-    TryBuildMedivac();
-    TryResearchCombatShield();
+    // TryBuildEngineeringBay();
+    // TryResearchInfantryWeapons();
+    // TryBuildMissileTurret();
+    // TryBuildStarport();
+    // TryBuildReactorStarport();
+    // TryBuildMedivac();
+    // TryResearchCombatShield();
 }
 
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
@@ -41,12 +42,6 @@ size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
 
 void Bot::OnUnitIdle(const Unit *unit) {
     switch (unit->unit_type.ToType()) {
-        case UNIT_TYPEID::TERRAN_COMMANDCENTER: {
-            // train SCVs in the command center
-            TryUpgradeCommand();
-            Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_SCV);
-            break;
-        }
         case UNIT_TYPEID::TERRAN_SCV: {
             // if an SCV is idle, tell it mine minerals
             const Unit *mineral_target = FindNearestRequestedUnit(unit->pos, Unit::Alliance::Neutral, UNIT_TYPEID::NEUTRAL_MINERALFIELD);
@@ -58,6 +53,7 @@ void Bot::OnUnitIdle(const Unit *unit) {
             break;
         }
         case UNIT_TYPEID::TERRAN_BARRACKS: {
+            // Barracks has just finished building
             // do not add the tag if it is already present
             auto p = std::find( begin(barracks_tags), end(barracks_tags), unit->tag);
             if (p == end(barracks_tags)) {
@@ -66,13 +62,6 @@ void Bot::OnUnitIdle(const Unit *unit) {
             }
             break;
         }
-        case UNIT_TYPEID::TERRAN_BARRACKSREACTOR: {
-            // should start Marine production on the first Barracks
-            marine_prod_first_barracks = true;
-            std::cout << "DEBUG: Reactor complete. Start non-stop Marine production\n";
-            break;
-        }
-
         default: {
             break;
         }
@@ -130,7 +119,7 @@ const Unit *Bot::FindNearestRequestedUnit(const Point2D &start, Unit::Alliance a
     return target;
 }
 
-bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type) {
+bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type, bool simult) {
     const ObservationInterface *observation = Observation();
     
     // get a unit to build the structure
@@ -138,9 +127,15 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
     Units units = observation->GetUnits(Unit::Alliance::Self, IsUnit(unit_type));
     for (const auto &unit : units) {
         for (const auto &order : unit->orders) {
-            // if a unit already is building a supply structure of this type, do nothing.
             if (order.ability_id == ability_type_for_structure) {
-                return false;
+                // a structure of this type is already building
+                if (simult) {
+                    // get a unit that's not already building this structure
+                    break;
+                } else {
+                    // will not allow building two units of the same type simultaneously
+                    return false;
+                }
             } else {
                 if (order.ability_id != ABILITY_ID::ATTACK_ATTACK) {
                     // don't use a unit that's attacking to build a supply depot
@@ -159,46 +154,6 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
                            Point2D(builder_unit->pos.x + rx * 15.0f, builder_unit->pos.y + ry * 15.0f));
 
     return true;
-}
-
-bool Bot::TryBuildSupplyDepot() {
-    const ObservationInterface *observation = Observation();
-    bool buildSupplyDepot = false;
-    size_t supplyDepotCount = CountUnitType(UNIT_TYPEID::TERRAN_SUPPLYDEPOT);
-
-    // if supply depot count is 0 and we are reaching supply cap, build the first supply depot
-    if (supplyDepotCount == 0) {
-        if (observation->GetFoodUsed() >= config.firstSupplyDepot) {
-            // build the first supply depot
-            buildSupplyDepot = true;
-            std::cout << "DEBUG: Build first supply depot\n";
-        }
-    } else if (supplyDepotCount == 1) {
-        if (observation->GetFoodUsed() >= config.secondSupplyDepot) {
-            // build the second supply depot
-            buildSupplyDepot = true;
-            std::cout << "DEBUG: Build second supply depot\n";
-        }
-    }
-
-    return (buildSupplyDepot == true) ? (TryBuildStructure(ABILITY_ID::BUILD_SUPPLYDEPOT)) : false;
-}
-
-bool Bot::TryBuildBarracks() {
-    bool buildBarracks = false;
-    size_t barracksCount = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
-
-    // will only build one barracks
-    if (barracksCount == 0) {
-        if ( Observation()->GetFoodUsed() >= config.firstBarracks ) {
-            // if supply is above a certain level, build the first barracks
-            buildBarracks = true;
-            std::cout << "DEBUG: Build first barracks\n";
-        }
-    }
-
-    // order an SCV to build barracks
-    return (buildBarracks == true) ? (TryBuildStructure(ABILITY_ID::BUILD_BARRACKS)) : false;
 }
 
 bool Bot::TryBuildRefinery() {
@@ -261,31 +216,6 @@ bool Bot::TryBuildCommandCenter(){
     return (buildCommand == true) ? (TryBuildStructure(ABILITY_ID::BUILD_COMMANDCENTER)) : false;
 }
 
-
-bool Bot::TryUpgradeStructure(ABILITY_ID ability_type_for_structure){
-
-    switch(ability_type_for_structure){
-        case ABILITY_ID::MORPH_ORBITALCOMMAND:{
-            // upgrade the first command center
-            Actions()->UnitCommand(Observation()->GetUnit(first_command_center), ABILITY_ID::MORPH_ORBITALCOMMAND);
-            return true;
-        }
-    }
-    return false;
-}
-bool Bot::TryUpgradeCommand(){
-    bool upgradeCommand = false;
-
-    size_t barracksCount = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
-
-    // upgrade command center when there is 1 barracks
-    if (barracksCount==1){
-        upgradeCommand = true;
-    }
-
-    return (upgradeCommand == true) ? (TryUpgradeStructure(ABILITY_ID::MORPH_ORBITALCOMMAND)) : false;
-}
-
 void Bot::CommandSCVs(int n, const Unit *target, ABILITY_ID ability) {
     if ( CountUnitType(UNIT_TYPEID::TERRAN_SCV) >= n) {
         // gather n SCVs
@@ -310,38 +240,6 @@ void Bot::CommandSCVs(int n, const Unit *target, ABILITY_ID ability) {
         }
         // finally, issue the command
         Actions()->UnitCommand(scv_units, ability, target);
-    }
-}
-
-bool Bot::TryBuildBarracksReactor(size_t n) {
-    if (n < 1) { return false; }
-    
-    // if the n'th barracks has been built
-    if (n <= barracks_tags.size()) {
-        const Unit *unit = Observation()->GetUnit(barracks_tags.at(n-1));
-
-        // when the Barracks has no add ons, it's add on tag is 0
-        if ( unit->is_alive && (unit->add_on_tag == 0) ) {
-            // attach a Reactor to this Barracks
-            Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
-            std::cout << "DEBUG: Upgrade " << n << "'th Barracks to Reactor\n";
-            return true;
-        }
-    }
-    return false;
-}
-
-bool Bot::TryStartMarineProd(size_t n) {
-    if (n < 1) { return false; }
-
-    // if the n'th barracks has been built
-    if (n <= barracks_tags.size()) {
-        const Unit *unit = Observation()->GetUnit(barracks_tags.at(n-1));
-        if ( unit->orders.size() == 0 ) {
-            // the barracks is currently idle - order marine production
-            Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
-            std::cout << "DEBUG: Barracks #" << n << " trains Marine\n";
-        }
     }
 }
 
