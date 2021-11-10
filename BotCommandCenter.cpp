@@ -8,11 +8,6 @@ void Bot::ChangeCCState(Tag cc) {
             CCStates[cc] = CommandCenterState::OC;
             break;
         }
-        // TODO: Change state to DROPMULE and after dropping Mule, change to POSTUPGRADE_TRAINSCV
-        case (CommandCenterState::OC): {
-            CCStates[cc] = CommandCenterState::POSTUPGRADE_TRAINSCV;
-            break;
-        }
         default: {
             break;
         }
@@ -29,7 +24,7 @@ bool Bot::TryBuildCommandCenter(){
     // build second command center at supply 19 (currently only builds 1 command center)
     if (mineral_count >= command_cost ){
         buildCommand = true;
-        std::cout << "DEBUG: Build second command center" << mineral_count << " " << command_cost << "\n";
+        std::cout << "DEBUG: Build second command center\n";
     }
     return (buildCommand == true) ? (TryBuildStructure(ABILITY_ID::BUILD_COMMANDCENTER)) : false;
 }
@@ -69,26 +64,27 @@ void Bot::CommandCenterHandler() {
     }
 
     // get the first CC
-    const Unit *first_cc_unit = Observation()->GetUnit(command_center_tags.at(0));
-    if (CCStates[first_cc_unit->tag] == CommandCenterState::PREUPGRADE_TRAINSCV) {
-        // if the first Barracks is ready, upgrade to OC
-        if (barracks_tags.size() > 0) {
-            ChangeCCState(first_cc_unit->tag);
-        } else {
-            if (first_cc_unit->orders.size() == 0) {
-                Actions()->UnitCommand(first_cc_unit, ABILITY_ID::TRAIN_SCV);
+    // std::cout << "command_center_tags size " << command_center_tags.size() << std::endl;
+    int n =0;
+    for (const Tag &t: command_center_tags){
+        const Unit *cc_unit = Observation()->GetUnit(t);
+        n++;
+        //std::cout << "cc " << n << "state " << CCStates[t] << std::endl;
+        if (CCStates[t] == CommandCenterState::PREUPGRADE_TRAINSCV) {
+            // if the first Barracks is ready, upgrade to OC
+            if (barracks_tags.size() > 0 && CountUnitType(UNIT_TYPEID::TERRAN_ORBITALCOMMAND) < 1) {
+                ChangeCCState(t);
+            } 
+            else if (cc_unit->orders.size() == 0) {
+                Actions()->UnitCommand(cc_unit, ABILITY_ID::TRAIN_SCV);
             }
         }
-    } else if (CCStates[first_cc_unit->tag] == CommandCenterState::OC) {
-        if (CountUnitType(UNIT_TYPEID::TERRAN_ORBITALCOMMAND) < 1) {
-            TryUpgradeToOC(1);
-        } else {
-            ChangeCCState(first_cc_unit->tag);
-        }
-    } 
-    else if (CCStates[first_cc_unit->tag] == CommandCenterState::POSTUPGRADE_TRAINSCV) {
-        if (first_cc_unit->orders.size() == 0) {
-            Actions()->UnitCommand(first_cc_unit, ABILITY_ID::TRAIN_SCV);
+        else if (CCStates[t] == CommandCenterState::OC) {
+            if (CountUnitType(UNIT_TYPEID::TERRAN_ORBITALCOMMAND) < 1) {
+                TryUpgradeToOC(n);
+            } else {
+                ChangeCCState(t);
+            }
         }
     }
 }

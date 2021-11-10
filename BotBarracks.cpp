@@ -172,50 +172,52 @@ void Bot::BarracksHandler() {
     } else if (first_barracks_state == BarracksState::MARINEPROD) {
         TryStartMarineProd(1, false);
     }
+    // build second and third barracks after the second command center is built
+    if (command_center_tags.size()>=2){
+        // state machine for the second Barracks
+        std::string second_barracks = "second";
+        if (second_barracks_state == BarracksState::BUILD) {
+            // if the second Barracks is not already being built
+            if (CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS) < 2) {
+                TryBuildBarracks(second_barracks);
+            } else {
+                ChangeSecondBarracksState();
+            }
+        } else if (second_barracks_state == BarracksState::REACTOR) {
+            // the second Barracks is going to be the first Barracks with a Reactor
+            // this check makes sure that we don't order a Reactor while it is already under construction
+            if (CountUnitType(UNIT_TYPEID::TERRAN_BARRACKSREACTOR) < 1) {
+                // attaches Reactor to the second Barracks
+                TryBuildBarracksReactor(2);
+            } else {
+                ChangeSecondBarracksState();
+            }
+        } else if (second_barracks_state == BarracksState::MARINEPROD) {
+            // starts Marine production on the third Barracks
+            TryStartMarineProd(2, true);
+        }
 
-    // state machine for the second Barracks
-    std::string second_barracks = "second";
-    if (second_barracks_state == BarracksState::BUILD) {
-        // if the second Barracks is not already being built
-        if (CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS) < 2) {
-            TryBuildBarracks(second_barracks);
-        } else {
-            ChangeSecondBarracksState();
+        // state machine for the third Barracks
+        std::string third_barracks = "third";
+        if (third_barracks_state == BarracksState::BUILD) {
+            // if the third Barracks is not already being built
+            if (CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS) < 3) {
+                TryBuildBarracks(third_barracks);
+            } else {
+                ChangeThirdBarracksState();
+            }
+        } else if (third_barracks_state == BarracksState::REACTOR) {
+            // the third Barracks is going to be the second Barracks with a Reactor
+            // this check makes sure that we don't order a Reactor while it is already under construction
+            if (CountUnitType(UNIT_TYPEID::TERRAN_BARRACKSREACTOR) < 2) {
+                // attaches Reactor to the third Barracks
+                TryBuildBarracksReactor(3);
+            } else {
+                ChangeThirdBarracksState();
+            }
+        } else if (third_barracks_state == BarracksState::MARINEPROD) {
+            // starts Marine production on the third Barracks
+            TryStartMarineProd(3, true);
         }
-    } else if (second_barracks_state == BarracksState::REACTOR) {
-        // the second Barracks is going to be the first Barracks with a Reactor
-        // this check makes sure that we don't order a Reactor while it is already under construction
-        if (CountUnitType(UNIT_TYPEID::TERRAN_BARRACKSREACTOR) < 1) {
-            // attaches Reactor to the second Barracks
-            TryBuildBarracksReactor(2);
-        } else {
-            ChangeSecondBarracksState();
-        }
-    } else if (second_barracks_state == BarracksState::MARINEPROD) {
-        // starts Marine production on the third Barracks
-        TryStartMarineProd(2, true);
-    }
-
-    // state machine for the third Barracks
-    std::string third_barracks = "third";
-    if (third_barracks_state == BarracksState::BUILD) {
-        // if the third Barracks is not already being built
-        if (CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS) < 3) {
-            TryBuildBarracks(third_barracks);
-        } else {
-            ChangeThirdBarracksState();
-        }
-    } else if (third_barracks_state == BarracksState::REACTOR) {
-        // the third Barracks is going to be the second Barracks with a Reactor
-        // this check makes sure that we don't order a Reactor while it is already under construction
-        if (CountUnitType(UNIT_TYPEID::TERRAN_BARRACKSREACTOR) < 2) {
-            // attaches Reactor to the third Barracks
-            TryBuildBarracksReactor(3);
-        } else {
-            ChangeThirdBarracksState();
-        }
-    } else if (third_barracks_state == BarracksState::MARINEPROD) {
-        // starts Marine production on the third Barracks
-        TryStartMarineProd(3, true);
     }
 }

@@ -14,7 +14,9 @@ enum SupplyDepotState { FIRST, SECOND, THIRD, CONT };
 enum BarracksState { BUILD, TECHLAB, REACTOR, STIMPACK, MARINEPROD };
 
 // states representing actions taken by the first Command Center
-enum CommandCenterState { BUILDCC, PREUPGRADE_TRAINSCV, OC, DROPMULE, POSTUPGRADE_TRAINSCV };
+enum CommandCenterState { BUILDCC, PREUPGRADE_TRAINSCV, OC };
+
+enum OrbitalCommandState { DROPMULE, POSTUPGRADE_TRAINSCV};
 
 class Bot : public Agent {
 public:
@@ -67,7 +69,7 @@ private:
         BuildCommand(){
             previous_build = Point3D(0,0,0);
             closest_mineral = Point3D(0,0,0);
-            previous_radius = 7;
+            previous_radius = 6;
             iter = 0;
             angle = 5;
         }

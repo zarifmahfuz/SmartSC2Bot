@@ -15,6 +15,7 @@ void Bot::OnGameStart() {
     // get the tag of the command center the game starts with
     command_center_tags.push_back(units[0]->tag);
     CCStates[command_center_tags[0]] = CommandCenterState::PREUPGRADE_TRAINSCV;
+    
     FindBaseLocations();
     buildCommand = new BuildCommand();
 }
@@ -23,10 +24,12 @@ void Bot::OnStep() {
     CommandCenterHandler();
 
     SupplyDepotHandler();
-
+    
     BarracksHandler();
 
     TryBuildRefinery();
+
+   
 
     // TryBuildCommandCenter();
 
@@ -85,8 +88,17 @@ void Bot::OnUnitCreated(const Unit *unit) {
             break;
         }
         case UNIT_TYPEID::TERRAN_COMMANDCENTER:{
-            command_center_tags.push_back(unit->tag);
-            CCStates[unit->tag] = CommandCenterState::BUILDCC;
+            bool add_cc = true;
+            for (const Tag &cc: command_center_tags){
+                if (cc == unit->tag){
+                    add_cc = false;
+                }
+            }
+            if (add_cc){
+                command_center_tags.push_back(unit->tag);
+                CCStates[unit->tag] = CommandCenterState::BUILDCC;
+            }
+            break;
         }
         default: {
             break;
@@ -155,15 +167,11 @@ Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radi
         starting_location = buildCommand->previous_build;
     }
     Point3D build_location;
-    // Point p2 = Point(0-radius,0);
-    // Point p3 = Point(0,0+radius);
-    // Point p4 = Point(0,0-radius);
     double cs;
     double sn;
     double px;
     double py;
     double angle = buildCommand->angle;
-    //double angle = 5;
     double iter = 0;
     double _radius = radius;
     bool placeable = false;
@@ -188,11 +196,6 @@ Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radi
         px = ((starting_location.x - center.x) * cs) - ((center.y - starting_location.y) * sn) + center.x;
         py = center.y - ((center.y - starting_location.y) * cs) + ((starting_location.x - center.x) * sn);
 
-        // px = build_location.x * cs - build_location.y * sn;
-        // py = build_location.x * sn + build_location.y * cs;
-
-        // build_location.x = px;
-        // build_location.y = py;
         ++iter;
         angle+=5;
         if (angle == 360){
@@ -200,7 +203,7 @@ Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radi
             starting_location =  Point3D(center.x+_radius,center.y,center.z);
             angle = 0;
         }
-        std::cout << "iter: " << iter << " center: ("<< center.x << ", "<< center.y << ") radius: " << _radius << " (" << px << " " << py << ")" << std::endl;
+        // std::cout << "iter: " << iter << " center: ("<< center.x << ", "<< center.y << ") radius: " << _radius << " (" << px << " " << py << ")" << std::endl;
         if (Observation()->IsPlacable(Point2D(px,py)) && Observation()->IsPathable(Point2D(px,py))){
             //placeable = true;
             build_location = Point3D(px,py,center.z);
@@ -216,12 +219,11 @@ Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radi
             Observation()->IsPlacable(p5) && Observation()->IsPlacable(p6) && Observation()->IsPlacable(p7) && Observation()->IsPlacable(p8)){
                 if (Observation()->IsPathable(p1) && Observation()->IsPathable(p2) && Observation()->IsPathable(p3) && Observation()->IsPathable(p4) &&
                 Observation()->IsPathable(p5) && Observation()->IsPathable(p6) && Observation()->IsPathable(p7) && Observation()->IsPathable(p8)){
-                    std::cout << "found placement! at (" << build_location.x << " " << build_location.y << " " << build_location.z << ") radius: "<< _radius << std::endl;
+                    // std::cout << "found placement! at (" << build_location.x << " " << build_location.y << " " << build_location.z << ") radius: "<< _radius << std::endl;
                     placeable = true;
                 }
             }
         }
-        //std::cout << "iter: " << iter << std::endl;
     }
     //std::cout << build_location.x << " " << build_location.y << std::endl;
     //std::cout << px << " " << py << std::endl;
@@ -289,19 +291,14 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
             }
             
             buildCommand->closest_mineral = closest_mineral;
-            std::cout << "closest mineral " << closest_mineral.x << " " << closest_mineral.y << " " << closest_mineral.z << std::endl;
+            // std::cout << "closest mineral " << closest_mineral.x << " " << closest_mineral.y << " " << closest_mineral.z << std::endl;
 
             build_location = chooseNearbyBuildLocation(closest_mineral,radius);
-            // build_location.x = closest_mineral.x + rx * 15.0f;
-            // build_location.y = closest_mineral.y + ry * 15.0f;
-            //std::cout << "build location " << build_location.x << " " << build_location.y << std::endl;
+        
             Actions()->UnitCommand(builder_unit,
                             ability_type_for_structure,
                             build_location);
 
-            // Actions()->UnitCommand(builder_unit,
-            //                 ability_type_for_structure,
-            //                 Point2D(build_location.x,build_location.y));
             break;
         
         default:
@@ -310,7 +307,6 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
                             Point2D(builder_unit->pos.x + rx * 15.0f, builder_unit->pos.y + ry * 15.0f));
             break;
     }
-    // issue a command to the selected unit
     
     return true;
 }
@@ -572,12 +568,12 @@ void Bot::FindBaseLocations(){
     }
 
     // print for debug
-    for (const std::vector<Point3D> s: clusters){
-         std::cout << "new cluster" << std::endl;
-         for (const Point3D &p: s){
-             std::cout << p.x << " " << p.y << " " << p.z << std::endl;
-         }
-    }
+    // for (const std::vector<Point3D> s: clusters){
+    //     //  std::cout << "new cluster" << std::endl;
+    //      for (const Point3D &p: s){
+    //          std::cout << p.x << " " << p.y << " " << p.z << std::endl;
+    //      }
+    // }
 
     Point2D temp = Observation()->GetUnit(command_center_tags[0])->pos;
     //std::cout << "distance between starting center and field:" << dist(computeClusterCenter(clusters[0]),temp)<< std::endl;
@@ -585,21 +581,9 @@ void Bot::FindBaseLocations(){
     Point3D center;
     for (const std::vector<Point3D> &p: clusters){
         center = computeClusterCenter(p);
-        std::cout << "center: " << center.x << " " << center.y << " " << center.z << std::endl;
+        //std::cout << "center: " << center.x << " " << center.y << " " << center.z << std::endl;
         clusterCenters.push_back(center);
     }
-    // init bases
-    
-    // Point2D center;
-    // bases = new Bases();
-    // for (const std::vector<Point2D> &cluster: clusters){
-    //     center = computeClusterCenter(cluster);
-    //     bases->bases[center] = false;
-    // }
-    
-    // Point2D start_center = computeClusterCenter(start_cluster);
-    // bases->bases[start_center] = true;
-    
 }
 
 
