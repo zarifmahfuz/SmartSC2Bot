@@ -50,6 +50,44 @@ public:
 private:
     BotConfig config;
 
+    // centers of all clusters of mineral fields
+    std::vector<Point3D> clusterCenters;
+
+    // number of mineral field clusters
+    int numClusters;
+
+    // struct to store info related to building command centers in the correct location
+    struct BuildCommand{
+        Point3D previous_build;
+        Point3D closest_mineral;
+        int previous_radius;
+        int iter;
+        double angle;
+        BuildCommand(){
+            previous_build = Point3D(0,0,0);
+            closest_mineral = Point3D(0,0,0);
+            previous_radius = 7;
+            iter = 0;
+            angle = 5;
+        }
+    };
+    BuildCommand *buildCommand;
+
+    // finds the locations of all bases in the map
+    void FindBaseLocations();
+
+    // determines if a unit is a mineral field
+    bool isMineral(const Unit *u);
+
+    // computes the center of a cluster of mineral feilds
+    Point3D computeClusterCenter(const std::vector<Point3D> &cluster);
+
+    // chooses a nearby location to a mineral field to build on
+    Point3D chooseNearbyBuildLocation(const Point3D &center, const double &radius);
+
+    // convert degree to radian
+    double Convert(double degree);
+
     // Try to build an Engineering Bay.
     bool TryBuildEngineeringBay();
 
@@ -73,6 +111,8 @@ private:
 
     // Try to research the Combat Shield upgrade on the Barracks' Tech Lab.
     bool TryResearchCombatShield();
+
+    
 
     // ----------------- SUPPLY DEPOT ----------------
     // represents supply depots; index i represents (i+1)'th supply depot in the game
