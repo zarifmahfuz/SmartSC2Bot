@@ -14,6 +14,7 @@ void Bot::OnGameStart() {
     Units units = Observation()->GetUnits(Unit::Alliance::Self,  IsUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER));
     // get the tag of the command center the game starts with
     command_center_tags.push_back(units[0]->tag);
+    CCStates[command_center_tags[0]] = CommandCenterState::PREUPGRADE_TRAINSCV;
     FindBaseLocations();
     buildCommand = new BuildCommand();
 }
@@ -83,6 +84,10 @@ void Bot::OnUnitCreated(const Unit *unit) {
             }
             break;
         }
+        case UNIT_TYPEID::TERRAN_COMMANDCENTER:{
+            command_center_tags.push_back(unit->tag);
+            CCStates[unit->tag] = CommandCenterState::BUILDCC;
+        }
         default: {
             break;
         }
@@ -95,6 +100,9 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
             // when a Refinery is first created it already has one worker mining gas, need to assign two more
             CommandSCVs(2, unit);
             std::cout << "DEBUG: Assign workers on Refinery\n";
+        }
+        case UNIT_TYPEID::TERRAN_COMMANDCENTER:{
+            CCStates[unit->tag] = PREUPGRADE_TRAINSCV;
         }
         default: {
             break;
@@ -265,7 +273,7 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
     
     double distance;
     double radius = buildCommand->previous_radius; // arbitrary distance from center of a cluster
-    //double radius = 7;
+    
     Point3D build_location;
     switch (ability_type_for_structure)
     {
@@ -350,22 +358,6 @@ bool Bot::TryBuildRefinery() {
     return false;
 }
 
-bool Bot::TryBuildCommandCenter(){
-    const ObservationInterface *observation = Observation();
-
-    bool buildCommand = false;
-
-    size_t commandCount = CountUnitType(UNIT_TYPEID::TERRAN_COMMANDCENTER);
-
-    // build second command center at supply 19 (currently only builds 1 command center)
-    if (commandCount==1){
-        if ( Observation()->GetFoodUsed() >= config.secondCommandCenter ) {
-                buildCommand = true;
-                std::cout << "DEBUG: Build second command center\n";
-        }
-    }
-    return (buildCommand == true) ? (TryBuildStructure(ABILITY_ID::BUILD_COMMANDCENTER)) : false;
-}
 
 void Bot::CommandSCVs(int n, const Unit *target, ABILITY_ID ability) {
     if ( CountUnitType(UNIT_TYPEID::TERRAN_SCV) >= n) {

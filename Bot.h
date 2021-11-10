@@ -3,6 +3,7 @@
 
 #include <sc2api/sc2_api.h>
 #include "BotConfig.h"
+#include <map>
 
 using namespace sc2;
 
@@ -13,7 +14,7 @@ enum SupplyDepotState { FIRST, SECOND, THIRD, CONT };
 enum BarracksState { BUILD, TECHLAB, REACTOR, STIMPACK, MARINEPROD };
 
 // states representing actions taken by the first Command Center
-enum CommandCenterState { PREUPGRADE_TRAINSCV, OC, DROPMULE, POSTUPGRADE_TRAINSCV };
+enum CommandCenterState { BUILDCC, PREUPGRADE_TRAINSCV, OC, DROPMULE, POSTUPGRADE_TRAINSCV };
 
 class Bot : public Agent {
 public:
@@ -164,10 +165,19 @@ private:
 
     // ------------------------ COMMAND CENTER --------------------------
     std::vector<Tag> command_center_tags;
-    CommandCenterState first_cc_state = CommandCenterState::PREUPGRADE_TRAINSCV;
+    std::map<Tag,CommandCenterState> CCStates;
+    // Struct CCStates{
+    //     Tag tag;
+    //     CommandCenterState state;
+    //     CCStates(){
+    //         state = CommandCenterState::BUILDC;
+    //     }
+    // };
+    //CommandCenterState first_cc_state = CommandCenterState::PREUPGRADE_TRAINSCV;
+    //CommandCenterState second_cc_state = CommandCenterState::BUILDC;
 
     // changes states for the first CC
-    void ChangeFirstCCState();
+    void ChangeCCState(Tag cc);
 
     // handles the states and actions of all the CCs in the game
     void CommandCenterHandler();
