@@ -167,8 +167,8 @@ Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radi
     double sn;
     double px;
     double py;
-    // double angle = buildCommand->angle;
-    double angle = 5;
+    double angle = buildCommand->angle;
+    //double angle = 5;
     double iter = 0;
     double _radius = radius;
     bool placeable = false;
@@ -313,7 +313,6 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
             break;
     }
     // issue a command to the selected unit
-    
     
     return true;
 }
