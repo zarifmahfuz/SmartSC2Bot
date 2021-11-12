@@ -23,6 +23,8 @@ void Bot::OnGameStart() {
 void Bot::OnStep() {
     CommandCenterHandler();
 
+    OrbitalCommandHandler();
+
     SupplyDepotHandler();
     
     BarracksHandler();
@@ -112,9 +114,20 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
             // when a Refinery is first created it already has one worker mining gas, need to assign two more
             CommandSCVs(2, unit);
             std::cout << "DEBUG: Assign workers on Refinery\n";
+            break;
         }
         case UNIT_TYPEID::TERRAN_COMMANDCENTER:{
             CCStates[unit->tag] = PREUPGRADE_TRAINSCV;
+            break;
+        }
+        case UNIT_TYPEID::TERRAN_ORBITALCOMMAND:{
+            std::cout << "DEBUG: CC finished upgrading" << std::endl;
+            // remove the cc tag from vector
+            eraseTag(command_center_tags, unit->tag);
+            // add tag to OC vector and initialize its state
+            orbital_command_tags.push_back(unit->tag);
+            OCStates[unit->tag] = OrbitalCommandState::POSTUPGRADE_TRAINSCV;
+            break;
         }
         default: {
             break;
@@ -139,6 +152,17 @@ const Unit *Bot::FindNearestRequestedUnit(const Point2D &start, Unit::Alliance a
         }
     }
     return target;
+}
+
+bool Bot::eraseTag(std::vector<Tag> &v, const Tag &tag){
+    auto it = begin(v);
+    for(; it < end(v); ++it){
+        if (*it == tag){
+            v.erase(it);
+            return true;
+        }
+    }
+    return false;
 }
 
 Point3D Bot::computeClusterCenter(const std::vector<Point3D> &cluster){
@@ -167,22 +191,12 @@ Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radi
         starting_location = buildCommand->previous_build;
     }
     Point3D build_location;
-    double cs;
-    double sn;
-    double px;
-    double py;
+    double cs, sn, px, py;
     double angle = buildCommand->angle;
     double iter = 0;
     double _radius = radius;
     bool placeable = false;
-    Point3D p1;
-    Point3D p2;
-    Point3D p3;
-    Point3D p4;
-    Point3D p5;
-    Point3D p6;
-    Point3D p7;
-    Point3D p8;
+    Point3D p1, p2, p3, p4, p5, p6, p7, p8;
     const double command_radius = 2.75;
     double half_diagonal = sqrt(2)*command_radius;
     while (!placeable){
@@ -203,9 +217,8 @@ Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radi
             starting_location =  Point3D(center.x+_radius,center.y,center.z);
             angle = 0;
         }
-        // std::cout << "iter: " << iter << " center: ("<< center.x << ", "<< center.y << ") radius: " << _radius << " (" << px << " " << py << ")" << std::endl;
+        //std::cout << "iter: " << iter << " center: ("<< center.x << ", "<< center.y << ") radius: " << _radius << " (" << px << " " << py << ")" << std::endl;
         if (Observation()->IsPlacable(Point2D(px,py)) && Observation()->IsPathable(Point2D(px,py))){
-            //placeable = true;
             build_location = Point3D(px,py,center.z);
             p1 = Point3D(build_location.x+half_diagonal,build_location.y+half_diagonal,center.z);
             p2 = Point3D(build_location.x-half_diagonal,build_location.y+half_diagonal,center.z);
@@ -225,8 +238,7 @@ Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radi
             }
         }
     }
-    //std::cout << build_location.x << " " << build_location.y << std::endl;
-    //std::cout << px << " " << py << std::endl;
+
     buildCommand->angle = angle;
     buildCommand->previous_build = build_location;
     buildCommand->previous_radius = _radius;
@@ -567,13 +579,6 @@ void Bot::FindBaseLocations(){
         skip = false;
     }
 
-    // print for debug
-    // for (const std::vector<Point3D> s: clusters){
-    //     //  std::cout << "new cluster" << std::endl;
-    //      for (const Point3D &p: s){
-    //          std::cout << p.x << " " << p.y << " " << p.z << std::endl;
-    //      }
-    // }
 
     Point2D temp = Observation()->GetUnit(command_center_tags[0])->pos;
     //std::cout << "distance between starting center and field:" << dist(computeClusterCenter(clusters[0]),temp)<< std::endl;

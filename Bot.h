@@ -91,6 +91,9 @@ private:
     // convert degree to radian
     double Convert(double degree);
 
+    // erase tag from a vector
+    bool eraseTag(std::vector<Tag> &v, const Tag &tag);
+
     // Try to build an Engineering Bay.
     bool TryBuildEngineeringBay();
 
@@ -166,19 +169,13 @@ private:
     void ChangeThirdBarracksState();
 
     // ------------------------ COMMAND CENTER --------------------------
+    // represents command centers; index i represents (i+1)'th command center in the game
     std::vector<Tag> command_center_tags;
-    std::map<Tag,CommandCenterState> CCStates;
-    // Struct CCStates{
-    //     Tag tag;
-    //     CommandCenterState state;
-    //     CCStates(){
-    //         state = CommandCenterState::BUILDC;
-    //     }
-    // };
-    //CommandCenterState first_cc_state = CommandCenterState::PREUPGRADE_TRAINSCV;
-    //CommandCenterState second_cc_state = CommandCenterState::BUILDC;
 
-    // changes states for the first CC
+    // keeps track of the state for each command center
+    std::map<Tag,CommandCenterState> CCStates;
+
+    // changes states for CC
     void ChangeCCState(Tag cc);
 
     // handles the states and actions of all the CCs in the game
@@ -186,6 +183,19 @@ private:
 
     // upgrades the n'th CC to and Orbital Command
     bool TryUpgradeToOC(size_t n);
+
+    // ------------------------ ORBITAL COMMAND --------------------------
+    // represents orbital commands; index i represents (i+1)'th orbital command in the game
+    std::vector<Tag> orbital_command_tags;
+
+    // keeps track of the state for each OC
+    std::map<Tag,OrbitalCommandState> OCStates;
+
+    // changes states for CC
+    void ChangeOCState(Tag oc);
+
+    // handles the states and actions of all the OCs in the game
+    void OrbitalCommandHandler();
 
 
     // ------------------------ REFINERY ----------------------------
