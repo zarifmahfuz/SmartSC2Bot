@@ -9,6 +9,7 @@ void Bot::ChangeFirstCCState() {
             // TODO: Change state to DROPMULE and after dropping Mule, change to POSTUPGRADE_TRAINSCV
         case (CommandCenterState::OC): {
             first_cc_state = CommandCenterState::POSTUPGRADE_TRAINSCV;
+            first_cc_drop_mules = true;
             break;
         }
         default: {
@@ -66,7 +67,7 @@ void Bot::CommandCenterHandler() {
         }
 
         // drop 1 Mule only when there are 0 mules
-        if (CountUnitType(UNIT_TYPEID::TERRAN_MULE) == 0) {
+        if (CountUnitType(UNIT_TYPEID::TERRAN_MULE) == 0 && first_cc_drop_mules) {
             const Unit *target = FindNearestRequestedUnit(first_cc_unit->pos, Unit::Alliance::Neutral,
                                                           UNIT_TYPEID::NEUTRAL_MINERALFIELD); // find the closet mineral field for the Mule to drop to
             Actions()->UnitCommand(first_cc_unit, ABILITY_ID::EFFECT_CALLDOWNMULE, target); // drop mule

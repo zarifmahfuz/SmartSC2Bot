@@ -125,6 +125,7 @@ private:
     // ------------------------ COMMAND CENTER --------------------------
     std::vector<Tag> command_center_tags;
     CommandCenterState first_cc_state = CommandCenterState::PREUPGRADE_TRAINSCV;
+    bool first_cc_drop_mules = false;
 
     // changes states for the first CC
     void ChangeFirstCCState();
