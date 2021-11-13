@@ -15,6 +15,9 @@ enum BarracksState { BUILD, TECHLAB, REACTOR, STIMPACK, MARINEPROD };
 // states representing actions taken by the first Command Center
 enum CommandCenterState { PREUPGRADE_TRAINSCV, OC, DROPMULE, POSTUPGRADE_TRAINSCV };
 
+// states reprenting actions taken by the first Engineering Bay
+enum EBayState {EBAYBUILD, INFANTRYWEAPONSUPGRADELEVEL1};
+
 class Bot : public Agent {
 public:
     explicit Bot(const BotConfig &config);
@@ -137,6 +140,19 @@ private:
 
 
     // ------------------------ REFINERY ----------------------------
+
+
+    // ---------------------ENGINEERING BAY -------------------------
+    std::vector<Tag> e_bay_tags;
+    EBayState first_e_bay_state = EBayState::EBAYBUILD;
+
+    void EBayHandler();
+
+    bool TryBuildEBay(std::string &ebays_);
+
+    bool TryInfantryWeaponsUpgrade(size_t n);
+
+    void ChangeFirstEbayState();
 };
 
 #endif //BASICSC2BOT_BOT_H
