@@ -6,7 +6,7 @@ void Bot::ChangeFirstCCState() {
             first_cc_state = CommandCenterState::OC;
             break;
         }
-        // TODO: Change state to DROPMULE and after dropping Mule, change to POSTUPGRADE_TRAINSCV
+            // TODO: Change state to DROPMULE and after dropping Mule, change to POSTUPGRADE_TRAINSCV
         case (CommandCenterState::OC): {
             first_cc_state = CommandCenterState::POSTUPGRADE_TRAINSCV;
             break;
@@ -22,10 +22,10 @@ bool Bot::TryUpgradeToOC(size_t n) {
         return false;
     }
     // if the n'th CC has been built
-    if ( n <= command_center_tags.size() ) {
-        const Unit *unit = Observation()->GetUnit(command_center_tags.at(n-1));
+    if (n <= command_center_tags.size()) {
+        const Unit *unit = Observation()->GetUnit(command_center_tags.at(n - 1));
 
-        if ( unit->is_alive ) {
+        if (unit->is_alive) {
             // upgrade the CC to OC if we have enough resources
             if (Observation()->GetMinerals() >= 150) {
                 Actions()->UnitCommand(unit, ABILITY_ID::MORPH_ORBITALCOMMAND);
@@ -33,7 +33,7 @@ bool Bot::TryUpgradeToOC(size_t n) {
                 return true;
             } else {
                 return false;
-            } 
+            }
         }
     }
     return false;
@@ -60,10 +60,19 @@ void Bot::CommandCenterHandler() {
         } else {
             ChangeFirstCCState();
         }
-    } 
-    else if (first_cc_state == CommandCenterState::POSTUPGRADE_TRAINSCV) {
+    } else if (first_cc_state == CommandCenterState::POSTUPGRADE_TRAINSCV) {
         if (first_cc_unit->orders.size() == 0) {
             Actions()->UnitCommand(first_cc_unit, ABILITY_ID::TRAIN_SCV);
         }
+
+        // drop 1 Mule only when there are 0 mules
+        if (CountUnitType(UNIT_TYPEID::TERRAN_MULE) == 0) {
+            const Unit *target = FindNearestRequestedUnit(first_cc_unit->pos, Unit::Alliance::Neutral,
+                                                          UNIT_TYPEID::NEUTRAL_MINERALFIELD); // find the closet mineral field for the Mule to drop to
+            Actions()->UnitCommand(first_cc_unit, ABILITY_ID::EFFECT_CALLDOWNMULE, target); // drop mule
+
+        }
+
+
     }
 }

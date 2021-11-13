@@ -13,7 +13,7 @@ enum SupplyDepotState { FIRST, SECOND, THIRD, CONT };
 enum BarracksState { BUILD, TECHLAB, REACTOR, STIMPACK, MARINEPROD };
 
 // states representing actions taken by the first Command Center
-enum CommandCenterState { PREUPGRADE_TRAINSCV, OC, DROPMULE, POSTUPGRADE_TRAINSCV };
+enum CommandCenterState { PREUPGRADE_TRAINSCV, OC, POSTUPGRADE_TRAINSCV };
 
 class Bot : public Agent {
 public:

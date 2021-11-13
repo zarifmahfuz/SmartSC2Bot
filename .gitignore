@@ -12,6 +12,7 @@ CTestTestfile.cmake
 _deps
 
 build/
+cmake-build-debug
 
 # IDEs
 .vs/
