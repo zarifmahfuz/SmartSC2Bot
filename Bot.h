@@ -94,6 +94,8 @@ private:
     // erase tag from a vector
     bool eraseTag(std::vector<Tag> &v, const Tag &tag);
 
+    bool canAfford(UNIT_TYPEID unitType);
+
     // Try to build an Engineering Bay.
     bool TryBuildEngineeringBay();
 

@@ -18,6 +18,13 @@ void Bot::OnGameStart() {
     
     FindBaseLocations();
     buildCommand = new BuildCommand();
+
+    std::cout << "oc m cost: " << Observation()->GetUnitTypeData()[UnitTypeID(UNIT_TYPEID::TERRAN_ORBITALCOMMAND)].mineral_cost << std::endl;
+    std::cout << "oc v cost: " << Observation()->GetUnitTypeData()[UnitTypeID(UNIT_TYPEID::TERRAN_ORBITALCOMMAND)].vespene_cost << std::endl;
+    
+
+
+
 }
 
 void Bot::OnStep() {
@@ -154,6 +161,46 @@ const Unit *Bot::FindNearestRequestedUnit(const Point2D &start, Unit::Alliance a
     return target;
 }
 
+bool Bot::canAfford(UNIT_TYPEID unitType){
+    int mineral_cost = Observation()->GetUnitTypeData()[UnitTypeID(unitType)].mineral_cost;
+    int vespene_cost = Observation()->GetUnitTypeData()[UnitTypeID(unitType)].vespene_cost;
+    int mineral_count = Observation()->GetMinerals();
+    int vespene_count = Observation()->GetVespene();
+    switch(unitType){
+        case UNIT_TYPEID::TERRAN_COMMANDCENTER:{
+            break;
+        }
+        case UNIT_TYPEID::TERRAN_ORBITALCOMMAND:{
+            break;
+        }
+        case UNIT_TYPEID::TERRAN_REFINERY:{
+            break;
+        }
+        case UNIT_TYPEID::TERRAN_SCV:{
+            break;
+        }
+        case UNIT_TYPEID::NEUTRAL_VESPENEGEYSER:{
+            break;
+        }
+        case UNIT_TYPEID::TERRAN_ENGINEERINGBAY:{
+            break;
+        }
+        case UNIT_TYPEID::TERRAN_STARPORT:{
+            break;
+        }
+        case UNIT_TYPEID::TERRAN_STARPORTREACTOR:{
+            break;
+        }
+        case UNIT_TYPEID::TERRAN_BARRACKS:{
+
+        }
+        default:{
+            if (mineral_count>=mineral_cost && vespene_count)
+            break;
+        }
+            
+    }
+}
 bool Bot::eraseTag(std::vector<Tag> &v, const Tag &tag){
     auto it = begin(v);
     for(; it < end(v); ++it){
