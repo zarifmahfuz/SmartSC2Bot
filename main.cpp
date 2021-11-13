@@ -3,7 +3,7 @@
 #include "LadderInterface.h"
 
 int main(int argc, char *argv[]) {
-    std::string bot_config_file_name = "botconfig_rush_1.yml";
+    std::string bot_config_file_name = "config/botconfig_rush_1.yml";
     if (argc >= 2 && argv[1][0] != '-')
         bot_config_file_name = argv[1];
 

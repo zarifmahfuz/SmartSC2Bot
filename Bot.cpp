@@ -172,6 +172,17 @@ bool Bot::canAffordUnit(UNIT_TYPEID unitType){
     return false;
 }
 
+bool Bot::canAffordUpgrade(UPGRADE_ID upgradeID){
+    int mineral_cost = Observation()->GetUpgradeData()[UpgradeID(upgradeID)].mineral_cost;
+    int vespene_cost = Observation()->GetUpgradeData()[UpgradeID(upgradeID)].vespene_cost;
+    int mineral_count = Observation()->GetMinerals();
+    int vespene_count = Observation()->GetVespene();
+    if (mineral_count>=mineral_cost && vespene_count>=vespene_cost){
+                return true;
+    }
+    return false;
+}
+
 bool Bot::eraseTag(std::vector<Tag> &v, const Tag &tag){
     auto it = begin(v);
     for(; it < end(v); ++it){
