@@ -21,12 +21,9 @@ void Bot::ChangeCCState(Tag cc) {
 bool Bot::TryBuildCommandCenter(){
     const ObservationInterface *observation = Observation();    
     bool build = false;
-    size_t commandCount = CountUnitType(UNIT_TYPEID::TERRAN_COMMANDCENTER);
 
-    size_t command_cost = Observation()->GetUnitTypeData()[UnitTypeID(UNIT_TYPEID::TERRAN_COMMANDCENTER)].mineral_cost;
-    size_t mineral_count = Observation()->GetMinerals();
     // build second command center at supply 19 (currently only builds 1 command center)
-    if (mineral_count >= command_cost){
+    if (canAffordUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER)){
         build = true;
         std::cout << "DEBUG: Build second command center\n";
     }
@@ -43,7 +40,7 @@ bool Bot::TryUpgradeToOC(size_t n) {
 
         if ( unit->is_alive ) {
             // upgrade the CC to OC if we have enough resources
-            if (Observation()->GetMinerals() >= 150) {
+            if (canAffordUnit(UNIT_TYPEID::TERRAN_ORBITALCOMMAND)) {
                 Actions()->UnitCommand(unit, ABILITY_ID::MORPH_ORBITALCOMMAND);
                 std::cout << "DEBUG: Upgrade the " << n << "'th CC to Orbital Command\n";
                 return true;
@@ -69,7 +66,6 @@ void Bot::CommandCenterHandler() {
 
     int n =0;
     for (const Tag &tag: command_center_tags){
-
         n++; // keep track of the CC number
         const Unit *cc_unit = Observation()->GetUnit(tag);
         switch(CCStates[tag]){
@@ -90,6 +86,11 @@ void Bot::CommandCenterHandler() {
                     ChangeCCState(tag);
                 }
                 break;
+            }
+            case CommandCenterState::POSTUPGRADE_TRAINSCV:{
+                if (cc_unit->orders.size() == 0) {
+                    Actions()->UnitCommand(cc_unit, ABILITY_ID::TRAIN_SCV);
+                }
             }
             default:
                 break;

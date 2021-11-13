@@ -18,19 +18,11 @@ void Bot::OnGameStart() {
     
     FindBaseLocations();
     buildCommand = new BuildCommand();
-
-    std::cout << "oc m cost: " << Observation()->GetUnitTypeData()[UnitTypeID(UNIT_TYPEID::TERRAN_ORBITALCOMMAND)].mineral_cost << std::endl;
-    std::cout << "oc v cost: " << Observation()->GetUnitTypeData()[UnitTypeID(UNIT_TYPEID::TERRAN_ORBITALCOMMAND)].vespene_cost << std::endl;
     
-
-
-
 }
 
 void Bot::OnStep() {
     CommandCenterHandler();
-
-    OrbitalCommandHandler();
 
     SupplyDepotHandler();
     
@@ -129,11 +121,7 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
         }
         case UNIT_TYPEID::TERRAN_ORBITALCOMMAND:{
             std::cout << "DEBUG: CC finished upgrading" << std::endl;
-            // remove the cc tag from vector
-            eraseTag(command_center_tags, unit->tag);
-            // add tag to OC vector and initialize its state
-            orbital_command_tags.push_back(unit->tag);
-            OCStates[unit->tag] = OrbitalCommandState::POSTUPGRADE_TRAINSCV;
+            CCStates[unit->tag] = CommandCenterState::POSTUPGRADE_TRAINSCV;
             break;
         }
         default: {
@@ -161,46 +149,29 @@ const Unit *Bot::FindNearestRequestedUnit(const Point2D &start, Unit::Alliance a
     return target;
 }
 
-bool Bot::canAfford(UNIT_TYPEID unitType){
+bool Bot::canAffordUnit(UNIT_TYPEID unitType){
     int mineral_cost = Observation()->GetUnitTypeData()[UnitTypeID(unitType)].mineral_cost;
     int vespene_cost = Observation()->GetUnitTypeData()[UnitTypeID(unitType)].vespene_cost;
     int mineral_count = Observation()->GetMinerals();
     int vespene_count = Observation()->GetVespene();
     switch(unitType){
-        case UNIT_TYPEID::TERRAN_COMMANDCENTER:{
-            break;
-        }
         case UNIT_TYPEID::TERRAN_ORBITALCOMMAND:{
+            int command_cost = Observation()->GetUnitTypeData()[UnitTypeID(UNIT_TYPEID::TERRAN_COMMANDCENTER)].mineral_cost;
+            if (mineral_count >= (mineral_cost - command_cost )){
+                return true;
+            }
             break;
-        }
-        case UNIT_TYPEID::TERRAN_REFINERY:{
-            break;
-        }
-        case UNIT_TYPEID::TERRAN_SCV:{
-            break;
-        }
-        case UNIT_TYPEID::NEUTRAL_VESPENEGEYSER:{
-            break;
-        }
-        case UNIT_TYPEID::TERRAN_ENGINEERINGBAY:{
-            break;
-        }
-        case UNIT_TYPEID::TERRAN_STARPORT:{
-            break;
-        }
-        case UNIT_TYPEID::TERRAN_STARPORTREACTOR:{
-            break;
-        }
-        case UNIT_TYPEID::TERRAN_BARRACKS:{
-
         }
         default:{
-            if (mineral_count>=mineral_cost && vespene_count)
+            if (mineral_count>=mineral_cost && vespene_count>=vespene_cost){
+                return true;
+            }
             break;
-        }
-            
+        }     
     }
+    return false;
 }
+
 bool Bot::eraseTag(std::vector<Tag> &v, const Tag &tag){
     auto it = begin(v);
     for(; it < end(v); ++it){

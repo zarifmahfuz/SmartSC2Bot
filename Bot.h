@@ -14,9 +14,8 @@ enum SupplyDepotState { FIRST, SECOND, THIRD, CONT };
 enum BarracksState { BUILD, TECHLAB, REACTOR, STIMPACK, MARINEPROD };
 
 // states representing actions taken by the first Command Center
-enum CommandCenterState { BUILDCC, PREUPGRADE_TRAINSCV, OC };
+enum CommandCenterState { BUILDCC, PREUPGRADE_TRAINSCV, OC, POSTUPGRADE_TRAINSCV };
 
-enum OrbitalCommandState { DROPMULE, POSTUPGRADE_TRAINSCV};
 
 class Bot : public Agent {
 public:
@@ -94,7 +93,11 @@ private:
     // erase tag from a vector
     bool eraseTag(std::vector<Tag> &v, const Tag &tag);
 
-    bool canAfford(UNIT_TYPEID unitType);
+    // returns true if there is enough minerals and vespene to afford a unit
+    bool canAffordUnit(UNIT_TYPEID unitType);
+
+    // returns true if there is enough minerals and vespene to afford an upgrade
+    bool canAffordUpgrade(UPGRADE_ID upgrade);
 
     // Try to build an Engineering Bay.
     bool TryBuildEngineeringBay();
@@ -185,20 +188,6 @@ private:
 
     // upgrades the n'th CC to and Orbital Command
     bool TryUpgradeToOC(size_t n);
-
-    // ------------------------ ORBITAL COMMAND --------------------------
-    // represents orbital commands; index i represents (i+1)'th orbital command in the game
-    std::vector<Tag> orbital_command_tags;
-
-    // keeps track of the state for each OC
-    std::map<Tag,OrbitalCommandState> OCStates;
-
-    // changes states for CC
-    void ChangeOCState(Tag oc);
-
-    // handles the states and actions of all the OCs in the game
-    void OrbitalCommandHandler();
-
 
     // ------------------------ REFINERY ----------------------------
 };

@@ -63,7 +63,7 @@ include_directories(SYSTEM
 )
 
 # Create the executable.
-add_executable(Bot main.cpp Bot.cpp BotConfig.cpp BotBarracks.cpp BotSupplyDepot.cpp BotCommandCenter.cpp BotOrbitalCommand.cpp LadderInterface.cpp)
+add_executable(Bot main.cpp Bot.cpp BotConfig.cpp BotBarracks.cpp BotSupplyDepot.cpp BotCommandCenter.cpp LadderInterface.cpp)
 target_link_libraries(Bot
     sc2api sc2lib sc2utils yaml-cpp
 )
