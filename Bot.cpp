@@ -17,8 +17,11 @@ void Bot::OnGameStart() {
     CCStates[command_center_tags[0]] = CommandCenterState::PREUPGRADE_TRAINSCV;
     
     FindBaseLocations();
-    buildCommand = new BuildCommand();
-    
+    buildCommand = new BuildCommandInfo();
+}
+
+void Bot::OnGameEnd(){
+    delete buildCommand; // free memory
 }
 
 void Bot::OnStep() {
@@ -89,6 +92,9 @@ void Bot::OnUnitCreated(const Unit *unit) {
             break;
         }
         case UNIT_TYPEID::TERRAN_COMMANDCENTER:{
+            // check if the tag is already in command_center_tags
+            // if it's not, add it and init its state
+            // this check is only necessary because OnUnitCreated() is also called for the first command center
             bool add_cc = true;
             for (const Tag &cc: command_center_tags){
                 if (cc == unit->tag){
@@ -116,12 +122,13 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
             break;
         }
         case UNIT_TYPEID::TERRAN_COMMANDCENTER:{
-            CCStates[unit->tag] = PREUPGRADE_TRAINSCV;
+            std::cout << "DEBUG: CC finished building" << std::endl;
+            ChangeCCState(unit->tag); //command center finished building, so change its state
             break;
         }
         case UNIT_TYPEID::TERRAN_ORBITALCOMMAND:{
             std::cout << "DEBUG: CC finished upgrading" << std::endl;
-            CCStates[unit->tag] = CommandCenterState::POSTUPGRADE_TRAINSCV;
+            ChangeCCState(unit->tag); // orbital command is done upgrading so change its state
             break;
         }
         default: {
@@ -155,6 +162,7 @@ bool Bot::canAffordUnit(UNIT_TYPEID unitType){
     int mineral_count = Observation()->GetMinerals();
     int vespene_count = Observation()->GetVespene();
     switch(unitType){
+        // special case for the orbital command, doesn't apply for other units in our build order
         case UNIT_TYPEID::TERRAN_ORBITALCOMMAND:{
             int command_cost = Observation()->GetUnitTypeData()[UnitTypeID(UNIT_TYPEID::TERRAN_COMMANDCENTER)].mineral_cost;
             if (mineral_count >= (mineral_cost - command_cost )){

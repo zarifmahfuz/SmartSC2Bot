@@ -4,12 +4,25 @@
 //enum CommandCenterState { BUILD, PREUPGRADE_TRAINSCV, OC, DROPMULE, POSTUPGRADE_TRAINSCV };
 void Bot::ChangeCCState(Tag cc) {
     switch (CCStates[cc]) {
+        case (CommandCenterState::BUILDCC):{
+            // when a CC is done building, change state to PREUPGRADE_TRAINSCV
+            CCStates[cc] = CommandCenterState::PREUPGRADE_TRAINSCV;
+            break;
+        }
         case (CommandCenterState::PREUPGRADE_TRAINSCV): {
             CCStates[cc] = CommandCenterState::OC;
             break;
         }
         case (CommandCenterState::OC): {
-            CCStates[cc] = CommandCenterState::PREUPGRADE_TRAINSCV;
+            // make sure CC upgraded successfully
+            if (Observation()->GetUnit(cc)->unit_type == UNIT_TYPEID::TERRAN_ORBITALCOMMAND){
+                // if it has, set state to POSTUPGRADE_TRAINSCV
+                CCStates[cc] = CommandCenterState::POSTUPGRADE_TRAINSCV;
+            }
+            // if it hasn't go back to PREUPGRADE_TRAINSCV state
+            else{
+                CCStates[cc] = CommandCenterState::PREUPGRADE_TRAINSCV;
+            }
             break;
         }
         default: {
@@ -56,14 +69,17 @@ bool Bot::TryUpgradeToOC(size_t n) {
 
 void Bot::CommandCenterHandler() {
     if (command_center_tags.size() < 1) {
-        // build second command center at supply 19
-        if (Observation()->GetFoodUsed() >= config.secondCommandCenter) {
-                    TryBuildCommandCenter();     
-        }
         CCStates.clear();
         return;
     }
 
+    // second command center doesn't need to be built for now
+    // if (Observation()->GetFoodUsed() >= config.secondCommandCenter) {
+    //                 TryBuildCommandCenter();     
+    // }
+
+    // Using a loop to manage the states of all command centers
+    // This makes it easy to add more command centers in the future
     int n =0;
     for (const Tag &tag: command_center_tags){
         n++; // keep track of the CC number
@@ -80,7 +96,9 @@ void Bot::CommandCenterHandler() {
                 break;
             }
             case CommandCenterState::OC:{
-                if (CountUnitType(UNIT_TYPEID::TERRAN_ORBITALCOMMAND) < 1) {
+                // n==1, so this only applies to the first command center
+                // using n, it would be easy to change the states of the FIRST,SECOND... command centers independently
+                if (CountUnitType(UNIT_TYPEID::TERRAN_ORBITALCOMMAND) < 1 && n==1) {
                     TryUpgradeToOC(n);
                 } else {
                     ChangeCCState(tag);

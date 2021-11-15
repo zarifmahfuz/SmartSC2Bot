@@ -22,6 +22,7 @@ public:
     explicit Bot(const BotConfig &config);
 
     virtual void OnGameStart() final;
+    virtual void OnGameEnd() final;
     virtual void OnStep() final;
 
     // this will get called each time a unit has no orders in the current step
@@ -59,13 +60,13 @@ private:
     int numClusters;
 
     // struct to store info related to building command centers in the correct location
-    struct BuildCommand{
+    struct BuildCommandInfo{
         Point3D previous_build;
         Point3D closest_mineral;
         int previous_radius;
         int iter;
         double angle;
-        BuildCommand(){
+        BuildCommandInfo(){
             previous_build = Point3D(0,0,0);
             closest_mineral = Point3D(0,0,0);
             previous_radius = 6;
@@ -73,7 +74,7 @@ private:
             angle = 5;
         }
     };
-    BuildCommand *buildCommand;
+    BuildCommandInfo *buildCommand;
 
     // finds the locations of all bases in the map
     void FindBaseLocations();
