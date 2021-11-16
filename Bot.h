@@ -13,7 +13,7 @@ enum SupplyDepotState { FIRST, SECOND, THIRD, CONT };
 enum BarracksState { BUILD, TECHLAB, REACTOR, STIMPACK, MARINEPROD };
 
 // states representing actions taken by the first Command Center
-enum CommandCenterState { PREUPGRADE_TRAINSCV, OC, DROPMULE, POSTUPGRADE_TRAINSCV };
+enum CommandCenterState { PREUPGRADE_TRAINSCV, OC, POSTUPGRADE_TRAINSCV };
 
 class Bot : public Agent {
 public:
@@ -125,6 +125,7 @@ private:
     // ------------------------ COMMAND CENTER --------------------------
     std::vector<Tag> command_center_tags;
     CommandCenterState first_cc_state = CommandCenterState::PREUPGRADE_TRAINSCV;
+    bool first_cc_drop_mules = false;
 
     // changes states for the first CC
     void ChangeFirstCCState();
