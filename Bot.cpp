@@ -33,7 +33,7 @@ void Bot::OnStep() {
 
     TryBuildRefinery();
 
-   
+    EBayHandler();
 
     // TryBuildCommandCenter();
 
@@ -69,6 +69,17 @@ void Bot::OnUnitIdle(const Unit *unit) {
             if (p == end(barracks_tags)) {
                 // add the barracks tag to barracks_tags
                 barracks_tags.push_back(unit->tag);
+            }
+            break;
+        }
+
+        case UNIT_TYPEID::TERRAN_ENGINEERINGBAY: {
+            // E-Bay just finished building
+            // do not add the tag if it is already present
+            auto p = std::find( begin(e_bay_tags), end(e_bay_tags), unit->tag);
+            if (p == end(e_bay_tags)) {
+                // add the E-Bay tag to barracks_tags
+                e_bay_tags.push_back(unit->tag);
             }
             break;
         }

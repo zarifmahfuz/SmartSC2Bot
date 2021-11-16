@@ -13,16 +13,13 @@ void Bot::ChangeCCState(Tag cc) {
             CCStates[cc] = CommandCenterState::OC;
             break;
         }
+
         case (CommandCenterState::OC): {
             // make sure CC upgraded successfully
-            if (Observation()->GetUnit(cc)->unit_type == UNIT_TYPEID::TERRAN_ORBITALCOMMAND){
-                // if it has, set state to POSTUPGRADE_TRAINSCV
-                CCStates[cc] = CommandCenterState::POSTUPGRADE_TRAINSCV;
-            }
-            // if it hasn't go back to PREUPGRADE_TRAINSCV state
-            else{
-                CCStates[cc] = CommandCenterState::PREUPGRADE_TRAINSCV;
-            }
+            // if it has, set state to POSTUPGRADE_TRAINSCV
+            CCStates[cc] = CommandCenterState::POSTUPGRADE_TRAINSCV;
+            first_cc_drop_mules = true;
+            
             break;
         }
         default: {
@@ -48,10 +45,10 @@ bool Bot::TryUpgradeToOC(size_t n) {
         return false;
     }
     // if the n'th CC has been built
-    if ( n <= command_center_tags.size() ) {
-        const Unit *unit = Observation()->GetUnit(command_center_tags.at(n-1));
+    if (n <= command_center_tags.size()) {
+        const Unit *unit = Observation()->GetUnit(command_center_tags.at(n - 1));
 
-        if ( unit->is_alive ) {
+        if (unit->is_alive) {
             // upgrade the CC to OC if we have enough resources
             if (canAffordUnit(UNIT_TYPEID::TERRAN_ORBITALCOMMAND)) {
                 Actions()->UnitCommand(unit, ABILITY_ID::MORPH_ORBITALCOMMAND);
@@ -59,7 +56,7 @@ bool Bot::TryUpgradeToOC(size_t n) {
                 return true;
             } else {
                 return false;
-            } 
+            }
         }
     }
     return false;
@@ -108,10 +105,17 @@ void Bot::CommandCenterHandler() {
             case CommandCenterState::POSTUPGRADE_TRAINSCV:{
                 if (cc_unit->orders.size() == 0) {
                     Actions()->UnitCommand(cc_unit, ABILITY_ID::TRAIN_SCV);
+                    // drop 1 Mule only when there are 0 mules
+                    if (CountUnitType(UNIT_TYPEID::TERRAN_MULE) == 0 && first_cc_drop_mules) {
+                        const Unit *target = FindNearestRequestedUnit(first_cc_unit->pos, Unit::Alliance::Neutral,
+                                                                      UNIT_TYPEID::NEUTRAL_MINERALFIELD); // find the closet mineral field for the Mule to drop to
+                        Actions()->UnitCommand(first_cc_unit, ABILITY_ID::EFFECT_CALLDOWNMULE, target); // drop mule
+                    }
                 }
             }
             default:
                 break;
         }
+ 
     }
 }
