@@ -17,6 +17,7 @@ BotConfig::BotConfig(const YAML::Node &node)
           firstScout( node["SCV"]["scout"]["first"].as<int>() ),
           engineeringBayMinSupply(node["EngineeringBay"]["minSupply"].as<int>()),
           engineeringBayMaxSupply(node["EngineeringBay"]["maxSupply"].as<int>()),
+          engineeringBayFirst(node["EngineeringBay"]["first"].as<int>()),
           maxMedivacs(node["Medivac"]["maxUnits"].as<int>()) {
     supply_depot.insert( std::make_pair<std::string, int>("first", node["SupplyDepot"]["first"].as<int>()) );
     supply_depot.insert( std::make_pair<std::string, int>("second", node["SupplyDepot"]["second"].as<int>()) );

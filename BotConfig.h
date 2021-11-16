@@ -13,6 +13,7 @@ public:
     const int firstScout;
     const int engineeringBayMinSupply;
     const int engineeringBayMaxSupply;
+    const int engineeringBayFirst;
     const int maxMedivacs;
 
     // a dictionary that maps the n'th Supply Depot to it's required supply level
