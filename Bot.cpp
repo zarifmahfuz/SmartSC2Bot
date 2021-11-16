@@ -126,11 +126,6 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
             ChangeCCState(unit->tag); //command center finished building, so change its state
             break;
         }
-        case UNIT_TYPEID::TERRAN_ORBITALCOMMAND:{
-            std::cout << "DEBUG: CC finished upgrading" << std::endl;
-            ChangeCCState(unit->tag); // orbital command is done upgrading so change its state
-            break;
-        }
         default: {
             break;
         }

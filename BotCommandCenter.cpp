@@ -87,7 +87,7 @@ void Bot::CommandCenterHandler() {
         switch(CCStates[tag]){
             case CommandCenterState::PREUPGRADE_TRAINSCV:{
                 // if the first Barracks is ready, upgrade to OC
-                if (barracks_tags.size() > 0 && CountUnitType(UNIT_TYPEID::TERRAN_ORBITALCOMMAND) < 1) {
+                if (barracks_tags.size() > 0 && CountUnitType(UNIT_TYPEID::TERRAN_ORBITALCOMMAND) < 1 && n==1) {
                     ChangeCCState(tag);
                 } 
                 else if (cc_unit->orders.size() == 0) {
