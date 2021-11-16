@@ -172,7 +172,7 @@ void Bot::BarracksHandler() {
     } else if (first_barracks_state == BarracksState::MARINEPROD) {
         TryStartMarineProd(1, false);
     }
-
+    
     // state machine for the second Barracks
     std::string second_barracks = "second";
     if (second_barracks_state == BarracksState::BUILD) {

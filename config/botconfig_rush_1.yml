@@ -10,7 +10,7 @@ Barracks:
 Refinery:
     first: 13     # build the first refinery at supply level 16
 CommandCenter:
-    second: 19     # build command center at supply level 19
+    second: 50     # build command center at supply level 19
 SCV:
     scout:
         first: 17   # send the 17th SCV to scout

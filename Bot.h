@@ -3,6 +3,7 @@
 
 #include <sc2api/sc2_api.h>
 #include "BotConfig.h"
+#include <map>
 
 using namespace sc2;
 
@@ -13,7 +14,8 @@ enum SupplyDepotState { FIRST, SECOND, THIRD, CONT };
 enum BarracksState { BUILD, TECHLAB, REACTOR, STIMPACK, MARINEPROD };
 
 // states representing actions taken by the first Command Center
-enum CommandCenterState { PREUPGRADE_TRAINSCV, OC, POSTUPGRADE_TRAINSCV };
+
+enum CommandCenterState { BUILDCC, PREUPGRADE_TRAINSCV, OC, POSTUPGRADE_TRAINSCV };
 
 // states reprenting actions taken by the first Engineering Bay
 enum EBayState {EBAYBUILD, INFANTRYWEAPONSUPGRADELEVEL1};
@@ -23,6 +25,7 @@ public:
     explicit Bot(const BotConfig &config);
 
     virtual void OnGameStart() final;
+    virtual void OnGameEnd() final;
     virtual void OnStep() final;
 
     // this will get called each time a unit has no orders in the current step
@@ -53,6 +56,53 @@ public:
 private:
     BotConfig config;
 
+    // centers of all clusters of mineral fields
+    std::vector<Point3D> clusterCenters;
+
+    // number of mineral field clusters
+    int numClusters;
+
+    // struct to store info related to building command centers in the correct location
+    struct BuildCommandInfo{
+        Point3D previous_build;
+        Point3D closest_mineral;
+        int previous_radius;
+        int iter;
+        double angle;
+        BuildCommandInfo(){
+            previous_build = Point3D(0,0,0);
+            closest_mineral = Point3D(0,0,0);
+            previous_radius = 6;
+            iter = 0;
+            angle = 5;
+        }
+    };
+    BuildCommandInfo *buildCommand;
+
+    // finds the locations of all bases in the map
+    void FindBaseLocations();
+
+    // determines if a unit is a mineral field
+    bool isMineral(const Unit *u);
+
+    // computes the center of a cluster of mineral feilds
+    Point3D computeClusterCenter(const std::vector<Point3D> &cluster);
+
+    // chooses a nearby location to a mineral field to build on
+    Point3D chooseNearbyBuildLocation(const Point3D &center, const double &radius);
+
+    // convert degree to radian
+    double Convert(double degree);
+
+    // erase tag from a vector
+    bool eraseTag(std::vector<Tag> &v, const Tag &tag);
+
+    // returns true if there is enough minerals and vespene to afford a unit
+    bool canAffordUnit(UNIT_TYPEID unitType);
+
+    // returns true if there is enough minerals and vespene to afford an upgrade
+    bool canAffordUpgrade(UPGRADE_ID upgrade);
+
     // Try to build an Engineering Bay.
     bool TryBuildEngineeringBay();
 
@@ -76,6 +126,8 @@ private:
 
     // Try to research the Combat Shield upgrade on the Barracks' Tech Lab.
     bool TryResearchCombatShield();
+
+    
 
     // ----------------- SUPPLY DEPOT ----------------
     // represents supply depots; index i represents (i+1)'th supply depot in the game
@@ -126,19 +178,21 @@ private:
     void ChangeThirdBarracksState();
 
     // ------------------------ COMMAND CENTER --------------------------
+    // represents command centers; index i represents (i+1)'th command center in the game
     std::vector<Tag> command_center_tags;
-    CommandCenterState first_cc_state = CommandCenterState::PREUPGRADE_TRAINSCV;
     bool first_cc_drop_mules = false;
 
-    // changes states for the first CC
-    void ChangeFirstCCState();
+    // keeps track of the state for each command center
+    std::map<Tag,CommandCenterState> CCStates;
+
+    // changes states for CC
+    void ChangeCCState(Tag cc);
 
     // handles the states and actions of all the CCs in the game
     void CommandCenterHandler();
 
     // upgrades the n'th CC to and Orbital Command
     bool TryUpgradeToOC(size_t n);
-
 
     // ------------------------ REFINERY ----------------------------
 
