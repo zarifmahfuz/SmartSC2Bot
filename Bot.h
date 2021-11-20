@@ -221,6 +221,21 @@ private:
     bool TryInfantryWeaponsUpgrade(size_t n);
 
     void ChangeFirstEbayState();
+
+    // ------------------------- WALLING ----------------------------
+    const Unit *chosen_scv = nullptr;
+    void WalkSCV(bool first_call);
+
+    // finds the location of the entrance to the main ramp of the map
+    // n: number of points to consider on the circular search
+    // elev_diff: the elevation diffrence to look for to identify the entrance location
+    // sr: starting radius of the search circle
+    // ir: how much to increment the radius of the search circle in each iteration
+    // max_iter: maximum number of iterations to consider before giving up
+    void zBFS(int n, float elev_diff=2, float sr=10, float ir=1, int max_iter=1000);
+
+    // returns true if two floats are equal, false otherwise
+    bool compareFloats(float a, float b, float epsilon=0.0001);
 };
 
 #endif //BASICSC2BOT_BOT_H

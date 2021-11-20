@@ -17,6 +17,11 @@ void Bot::OnGameStart() {
     
     FindBaseLocations();
     buildCommand = new BuildCommandInfo();
+
+    // walling
+    chosen_scv = Observation()->GetUnits(Unit::Alliance::Self,  IsUnit(UNIT_TYPEID::TERRAN_SCV))[0];
+    WalkSCV(true);
+    zBFS(16);
 }
 
 void Bot::OnGameEnd(){
@@ -24,15 +29,18 @@ void Bot::OnGameEnd(){
 }
 
 void Bot::OnStep() {
-    SupplyDepotHandler();
+    // walling
+    WalkSCV(false);
+
+    // SupplyDepotHandler();
     
-    CommandCenterHandler();
+    // CommandCenterHandler();
 
-    BarracksHandler();
+    // BarracksHandler();
 
-    RefineryHandler();
+    // RefineryHandler();
 
-    EBayHandler();
+    // EBayHandler();
 
     // TryBuildEngineeringBay();
     // TryResearchInfantryWeapons();
@@ -44,12 +52,84 @@ void Bot::OnStep() {
     
 }
 
+void Bot::WalkSCV(bool first_call) {
+    if (first_call) {
+        // go to a random location around the command center to get it's distinct location
+        const Unit *cc_unit = Observation()->GetUnit(command_center_tags.at(0));
+
+        float cc_unit_posx = cc_unit->pos.x;
+        float cc_unit_posy = cc_unit->pos.y;
+        float cc_unit_posz = cc_unit->pos.z;
+        float cc_terrain_height = Observation()->TerrainHeight(Point2D(cc_unit->pos));
+        std::cout << "DEBUG: CC position: ";
+        std::cout << cc_unit_posx << ", " << cc_unit_posy << ", " << cc_unit_posy << std::endl;
+        std::cout << "DEBUG: CC Terrain Height: " << cc_terrain_height << std::endl;
+
+        float rx = 1;
+        float ry = 1;
+        Actions()->UnitCommand(chosen_scv, ABILITY_ID::SMART,
+                               Point2D(cc_unit->pos.x + rx * 15.0f, cc_unit->pos.y + ry * 15.0f));
+    } else {
+        if (chosen_scv->orders.size() > 0) {
+            const UnitOrder &order = chosen_scv->orders[0];
+            float target_posx = order.target_pos.x;
+            float target_posy = order.target_pos.y;
+            float target_terrain_height = Observation()->TerrainHeight(order.target_pos);
+            std::cout << "DEBUG: Chosen SCV: pos = ";
+            std::cout << target_posx << ", " << target_posy;
+            std::cout << ", terrain height = " << target_terrain_height << std::endl;
+        }
+    }
+}
+
+bool Bot::compareFloats(float a, float b, float epsilon) {
+    return fabs(a - b) < epsilon;
+}
+
+void Bot::zBFS(int n, float elev_diff, float sr, float ir, int max_iter) {
+    if (command_center_tags.size() < 1) { return; }
+    // get the position of the first command center
+    const Unit *cc = Observation()->GetUnit(command_center_tags.at(0));
+    float cx = cc->pos.x;
+    float cy = cc->pos.y;
+    float cc_terrain_height = Observation()->TerrainHeight(cc->pos);
+
+    // generate a vector of size n which represents 2d unit vectors - covers n points on a unit circle
+    std::vector<Point2D> direcs;
+    // difference in angle between each point in direcs
+    float angle_inc = (2 * M_PI) / n;
+    for (int i=0; i<n; ++i) {
+        float x = sin(i * angle_inc);
+        float y = cos(i * angle_inc);
+        direcs.push_back(Point2D(x, y));
+    }
+
+    // in each iteration, expand the search space by increasing the radius of the circle
+    // consider n points on the circle
+    int iter = 0;
+    while (iter < max_iter) {
+        for (int i=0; i<n; ++i) {
+            float target_x = cx + (sr + iter * ir) * direcs[i].x;
+            float target_y = cy + (sr + iter * ir) * direcs[i].y;
+            Point2D target_point(target_x, target_y);
+            float target_terrain_height = Observation()->TerrainHeight(target_point);
+            if ( compareFloats(cc_terrain_height - target_terrain_height, elev_diff) ) {
+                // we have found a point in the natural expansion!
+                std::cout << "DEBUG: Found entrance: x = " << target_x << ", y = " << target_y << std::endl;
+                return;
+            }
+        }
+        ++iter;
+    }
+}
+
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
     return Observation()->GetUnits(Unit::Alliance::Self, IsUnit(unit_type)).size();
 }
 
 void Bot::OnUnitIdle(const Unit *unit) {
     switch (unit->unit_type.ToType()) {
+        /*
         case UNIT_TYPEID::TERRAN_SCV: {
             // if an SCV is idle, tell it mine minerals
             const Unit *mineral_target = FindNearestRequestedUnit(unit->pos, Unit::Alliance::Neutral, UNIT_TYPEID::NEUTRAL_MINERALFIELD);
@@ -60,6 +140,7 @@ void Bot::OnUnitIdle(const Unit *unit) {
             Actions()->UnitCommand(unit, ABILITY_ID::SMART, mineral_target);
             break;
         }
+        */
         case UNIT_TYPEID::TERRAN_BARRACKS: {
             // Barracks has just finished building
             // do not add the tag if it is already present
