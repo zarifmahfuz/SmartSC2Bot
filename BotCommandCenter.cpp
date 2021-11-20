@@ -88,7 +88,10 @@ void Bot::CommandCenterHandler() {
                     ChangeCCState(tag);
                 } 
                 else if (cc_unit->orders.size() == 0) {
-                    Actions()->UnitCommand(cc_unit, ABILITY_ID::TRAIN_SCV);
+                    // do not waste minerals on training SCVs when the first supply depot has not been built yet
+                    if (CountUnitType(UNIT_TYPEID::TERRAN_SUPPLYDEPOT) > 0) {
+                        Actions()->UnitCommand(cc_unit, ABILITY_ID::TRAIN_SCV);
+                    }
                 }
                 break;
             }
