@@ -1,4 +1,3 @@
-#include <sc2api/sc2_unit_filters.h>
 #include "Bot.h"
 #include <iostream>
 #include <vector>
@@ -25,17 +24,15 @@ void Bot::OnGameEnd(){
 }
 
 void Bot::OnStep() {
-    CommandCenterHandler();
-
     SupplyDepotHandler();
     
+    CommandCenterHandler();
+
     BarracksHandler();
 
-    TryBuildRefinery();
+    RefineryHandler();
 
     EBayHandler();
-
-    // TryBuildCommandCenter();
 
     // TryBuildEngineeringBay();
     // TryResearchInfantryWeapons();
@@ -44,6 +41,7 @@ void Bot::OnStep() {
     // TryBuildReactorStarport();
     // TryBuildMedivac();
     // TryResearchCombatShield();
+    
 }
 
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
@@ -127,9 +125,13 @@ void Bot::OnUnitCreated(const Unit *unit) {
 void Bot::OnBuildingConstructionComplete(const Unit *unit) {
     switch (unit->unit_type.ToType()) {
         case UNIT_TYPEID::TERRAN_REFINERY: {
-            // when a Refinery is first created it already has one worker mining gas, need to assign two more
-            CommandSCVs(2, unit);
-            std::cout << "DEBUG: Assign workers on Refinery\n";
+            // do not add duplicate tags
+            auto p = std::find( begin(refinery_tags), end(refinery_tags), unit->tag);
+            if (p == end(refinery_tags)) {
+                // add the refinery tag to refinery_tags
+                refinery_tags.push_back(unit->tag);
+            }
+            ChangeRefineryState();
             break;
         }
         case UNIT_TYPEID::TERRAN_COMMANDCENTER:{
@@ -366,51 +368,7 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
     return true;
 }
 
-bool Bot::TryBuildRefinery() {
-    bool buildRefinery = false;
-    size_t refineryCount = CountUnitType(UNIT_TYPEID::TERRAN_REFINERY);
-
-    if (refineryCount == 0) {
-        if ( Observation()->GetFoodUsed() >= config.firstRefinery ) {
-            buildRefinery = true;
-            std::cout << "DEBUG: Build first refinery\n";
-        }
-    }
-
-    if (buildRefinery) {
-        const ObservationInterface *observation = Observation();
-
-        // get an SCV to build the structure
-        const Unit *builder_unit = nullptr;
-        Units units = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_SCV));
-        for (const auto &unit : units) {
-            for (const auto &order : unit->orders) {
-                // if a unit already is building a refinery, do nothing.
-                if (order.ability_id == ABILITY_ID::BUILD_REFINERY) {
-                    return false;
-                }
-            }
-            builder_unit = unit;
-            break;
-        }
-
-        if (!builder_unit) { return false; }
-
-        // get the nearest vespene geyser
-        const Unit *vespene_geyser = FindNearestRequestedUnit(builder_unit->pos, Unit::Alliance::Neutral, UNIT_TYPEID::NEUTRAL_VESPENEGEYSER);
-
-        if (!vespene_geyser) { return false; }
-        // issue a command to the selected unit
-        Actions()->UnitCommand(builder_unit,
-                               ABILITY_ID::BUILD_REFINERY,
-                               vespene_geyser);
-        return true;
-    }
-    return false;
-}
-
-
-void Bot::CommandSCVs(int n, const Unit *target, ABILITY_ID ability) {
+bool Bot::CommandSCVs(int n, const Unit *target, ABILITY_ID ability) {
     if ( CountUnitType(UNIT_TYPEID::TERRAN_SCV) >= n) {
         // gather n SCVs
         std::vector<const Unit *> scv_units;
@@ -434,7 +392,9 @@ void Bot::CommandSCVs(int n, const Unit *target, ABILITY_ID ability) {
         }
         // finally, issue the command
         Actions()->UnitCommand(scv_units, ability, target);
+        return true;
     }
+    return false;
 }
 
 bool Bot::TryBuildEngineeringBay() {

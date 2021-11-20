@@ -2,13 +2,19 @@
 #define BASICSC2BOT_BOT_H
 
 #include <sc2api/sc2_api.h>
+#include <sc2api/sc2_unit_filters.h>
 #include "BotConfig.h"
 #include <map>
+#include <utility>
+#include <math.h>
 
 using namespace sc2;
 
-// states representing which supply depot to build .. e.g. FIRST means the first supply depot has been built
+// states mapping the action we are trying to do related to a Supply Depot
 enum SupplyDepotState { FIRST, SECOND, THIRD, CONT };
+
+// states mapping the action we are trying to do with a Refinery
+enum RefineryState { REFINERY_FIRST, ASSIGN_WORKERS, REFINERY_IDLE };
 
 // states representing actions taken by the first, second and third Barracks
 enum BarracksState { BUILD, TECHLAB, REACTOR, STIMPACK, MARINEPROD };
@@ -47,11 +53,10 @@ public:
     // simult is set to true when you want to allow building a unit when another unit of the same type is under construction
     bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::TERRAN_SCV, bool simult = false);
 
-    bool TryBuildRefinery();
     bool TryBuildCommandCenter();
     
-    // issues a command to n number of SCVs
-    void CommandSCVs(int n, const Unit *target, ABILITY_ID ability = ABILITY_ID::SMART);
+    // issues a command to n number of SCVs - returns true if the command was successful, false otherwise
+    bool CommandSCVs(int n, const Unit *target, ABILITY_ID ability = ABILITY_ID::SMART);
   
 private:
     BotConfig config;
@@ -195,7 +200,15 @@ private:
     bool TryUpgradeToOC(size_t n);
 
     // ------------------------ REFINERY ----------------------------
-
+    std::vector<Tag> refinery_tags;
+    RefineryState refinery_state = RefineryState::REFINERY_FIRST;
+    void ChangeRefineryState();
+    void RefineryHandler();
+    // parameter can be "first", "second", ...
+    bool TryBuildRefinery(std::string &refinery_);
+    // assigns a target amount of workers to a given Refinery, should be between [0, 3]
+    // returns true if workers were assigned, false otherwise
+    bool AssignWorkersToRefinery(const Tag &tag, int target_workers);
 
     // ---------------------ENGINEERING BAY -------------------------
     std::vector<Tag> e_bay_tags;

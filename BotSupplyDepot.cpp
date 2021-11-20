@@ -25,7 +25,7 @@ bool Bot::TryBuildSupplyDepot(std::string &depot_) {
     int required_supply_count = config.supply_depot.at(depot_);
 
     if (supply_count >= required_supply_count) {
-        //std::cout << "DEBUG: Build Supply Depot \n";
+        std::cout << "DEBUG: Build " << depot_ << " Supply Depot \n";
         return TryBuildStructure(ABILITY_ID::BUILD_SUPPLYDEPOT);
     }
     return false;
