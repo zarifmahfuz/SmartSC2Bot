@@ -34,8 +34,6 @@ void Bot::OnStep() {
 
     EBayHandler();
 
-    // TryBuildCommandCenter();
-
     // TryBuildEngineeringBay();
     // TryResearchInfantryWeapons();
     // TryBuildMissileTurret();
@@ -43,6 +41,7 @@ void Bot::OnStep() {
     // TryBuildReactorStarport();
     // TryBuildMedivac();
     // TryResearchCombatShield();
+    
 }
 
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {

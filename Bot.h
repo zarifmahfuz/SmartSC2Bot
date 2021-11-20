@@ -5,6 +5,8 @@
 #include <sc2api/sc2_unit_filters.h>
 #include "BotConfig.h"
 #include <map>
+#include <utility>
+#include <math.h>
 
 using namespace sc2;
 
