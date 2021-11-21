@@ -15,14 +15,14 @@ public:
     const int engineeringBayFirst;
     const int maxMedivacs;
 
+    // supply levels to build each barracks at
+    const std::vector<int> supplyToBuildBarracksAt;
+
     // a dictionary that maps the n'th Supply Depot to it's required supply level
     std::unordered_map<std::string, int> supply_depot;
 
     // a dictionary that maps the n'th Refinery to it's required supply level
     std::unordered_map<std::string, int> refinery;
-
-    // a dictionary that maps the n'th barracks to it's required supply level
-    std::unordered_map<std::string, int> barracks;
 
     // defines the maximum number of scouts that will be active during the game at a time
     const int maxSimulScouts;

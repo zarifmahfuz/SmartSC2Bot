@@ -59,17 +59,6 @@ void Bot::OnUnitIdle(const Unit *unit) {
             Actions()->UnitCommand(unit, ABILITY_ID::SMART, mineral_target);
             break;
         }
-        case UNIT_TYPEID::TERRAN_BARRACKS: {
-            // Barracks has just finished building
-            // do not add the tag if it is already present
-            auto p = std::find( begin(barracks_tags), end(barracks_tags), unit->tag);
-            if (p == end(barracks_tags)) {
-                // add the barracks tag to barracks_tags
-                barracks_tags.push_back(unit->tag);
-            }
-            break;
-        }
-
         case UNIT_TYPEID::TERRAN_ENGINEERINGBAY: {
             // E-Bay just finished building
             // do not add the tag if it is already present
@@ -115,9 +104,18 @@ void Bot::OnUnitCreated(const Unit *unit) {
             }
             break;
         }
-        case UNIT_TYPEID::TERRAN_BARRACKS:{
-            barracks_tags.push_back(unit->tag);            
-        }
+        case UNIT_TYPEID::TERRAN_BARRACKS:
+            std::cout << "DEBUG: Started building a Barracks (i=" << barracks_tags.size() << ")\n";
+            barracks_tags.push_back(unit->tag);
+            barracks_states.push_back(BarracksState::BUILDING);
+            barracks_tech_lab_states.push_back(BarracksTechLabState::NONE);
+            break;
+        case UNIT_TYPEID::TERRAN_BARRACKSTECHLAB:
+            std::cout << "DEBUG: Started building a Barracks Tech Lab\n";
+            break;
+        case UNIT_TYPEID::TERRAN_BARRACKSREACTOR:
+            std::cout << "DEBUG: Started building a Barracks Reactor\n";
+            break;
         default: {
             break;
         }
@@ -145,6 +143,13 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
             break;
         }
     }
+}
+
+void Bot::OnUpgradeCompleted(UpgradeID upgradeId) {
+    if (upgradeId == UPGRADE_ID::STIMPACK)
+        have_stimpack = true;
+    else if (upgradeId == UPGRADE_ID::COMBATSHIELD)
+        have_combat_shield = true;
 }
 
 const Unit *Bot::FindNearestRequestedUnit(const Point2D &start, Unit::Alliance alliance, UNIT_TYPEID unit_type) {
@@ -592,19 +597,6 @@ bool Bot::TryBuildMedivac() {
 
     Actions()->UnitCommand(reactor_starport, ABILITY_ID::TRAIN_MEDIVAC);
     //std::cout << "DEBUG: Building Medivac at Reactor Starport\n";
-    return true;
-}
-
-bool Bot::TryResearchCombatShield() {
-    const auto *observation = Observation();
-
-    auto tech_labs = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_BARRACKSTECHLAB));
-    if (tech_labs.empty())
-        return false;
-
-    auto *tech_lab = tech_labs[0];
-    Actions()->UnitCommand(tech_lab, ABILITY_ID::RESEARCH_COMBATSHIELD);
-    //std::cout << "DEBUG: Researching Combat Shield on Barracks' Tech Lab\n";
     return true;
 }
 

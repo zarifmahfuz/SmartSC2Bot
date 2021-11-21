@@ -18,13 +18,11 @@ BotConfig::BotConfig(const YAML::Node &node)
           engineeringBayMaxSupply(node["EngineeringBay"]["maxSupply"].as<int>()),
           engineeringBayFirst(node["EngineeringBay"]["first"].as<int>()),
           maxMedivacs(node["Medivac"]["maxUnits"].as<int>()),
-          maxSimulScouts(node["CommandCenter"]["maxSimulScouts"].as<int>()) {
+          maxSimulScouts(node["CommandCenter"]["maxSimulScouts"].as<int>()),
+          supplyToBuildBarracksAt(node["Barracks"]["supplyToBuildAt"].as<std::vector<int>>()) {
     supply_depot.insert( std::make_pair<std::string, int>("first", node["SupplyDepot"]["first"].as<int>()) );
     supply_depot.insert( std::make_pair<std::string, int>("second", node["SupplyDepot"]["second"].as<int>()) );
     supply_depot.insert( std::make_pair<std::string, int>("third", node["SupplyDepot"]["third"].as<int>()) );
     supply_depot.insert( std::make_pair<std::string, int>("cont", node["SupplyDepot"]["cont"].as<int>()) );
     refinery.insert( std::make_pair<std::string, int>("first", node["Refinery"]["first"].as<int>()) );
-    barracks.insert( std::make_pair<std::string, int> ("first", node["Barracks"]["first"].as<int>()) );
-    barracks.insert( std::make_pair<std::string, int> ("second", node["Barracks"]["second"].as<int>()) );
-    barracks.insert( std::make_pair<std::string, int> ("third", node["Barracks"]["third"].as<int>()) );
 }
