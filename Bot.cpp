@@ -14,13 +14,12 @@ void Bot::OnGameStart() {
     // get the tag of the command center the game starts with
     command_center_tags.push_back(units[0]->tag);
     CCStates[command_center_tags[0]] = CommandCenterState::PREUPGRADE_TRAINSCV;
-    
+    std::cout << "pos: " << units[0]->pos.x << " " << units[0]->pos.y  << std::endl;
     FindBaseLocations();
-    buildCommand = new BuildCommandInfo();
+    BuildMap = std::map<std::string,BuildInfo>();
 }
 
 void Bot::OnGameEnd(){
-    delete buildCommand; // free memory
 }
 
 void Bot::OnStep() {
@@ -230,20 +229,19 @@ double Bot::Convert(double degree)
 }
 
 // given a point and a radius, returns a buildable nearby location
-Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radius){
+Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radius, ABILITY_ID ability_type_for_structure, std::string n){
+    BuildInfo *buildInfo = &BuildMap[n];
+
     Point3D starting_location =  Point3D(center.x+radius,center.y,center.z);
-    if (buildCommand->previous_build != Point3D(0,0,0)){
-        starting_location = buildCommand->previous_build;
-    }
     Point3D build_location;
     double cs, sn, px, py;
-    double angle = buildCommand->angle;
+    double angle = buildInfo->angle;
     double iter = 0;
     double _radius = radius;
     bool placeable = false;
     Point3D p1, p2, p3, p4, p5, p6, p7, p8;
-    const double command_radius = 2.75;
-    double half_diagonal = sqrt(2)*command_radius;
+    double unit_radius = buildInfo->unit_radius;
+    double half_diagonal = sqrt(2)*unit_radius;
     while (!placeable){
         // change build location
         double theta = Convert(angle);
@@ -256,23 +254,29 @@ Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radi
         py = center.y - ((center.y - starting_location.y) * cs) + ((starting_location.x - center.x) * sn);
 
         ++iter;
-        angle+=5;
+        angle+=15;
         if (angle == 360){
-            ++_radius;
+            if (_radius<20){
+                ++_radius;}
+            else{
+                _radius = 6;
+            }
             starting_location =  Point3D(center.x+_radius,center.y,center.z);
             angle = 0;
         }
-        //std::cout << "iter: " << iter << " center: ("<< center.x << ", "<< center.y << ") radius: " << _radius << " (" << px << " " << py << ")" << std::endl;
+        std::cout << " iter: " << iter << " center: ("<< center.x << ", "<< center.y << ") radius: " << _radius << " (" << px << " " << py << ") " << "distance: " << Distance2D(Point2D(px,py),center) << std::endl;
+        std::cout << BuildMap[n].angle << " " << BuildMap[n].unit_radius << " " << BuildMap[n].previous_radius << std::endl;
         if (Observation()->IsPlacable(Point2D(px,py)) && Observation()->IsPathable(Point2D(px,py))){
+            std::cout << "unit radius" << unit_radius << std::endl;
             build_location = Point3D(px,py,center.z);
             p1 = Point3D(build_location.x+half_diagonal,build_location.y+half_diagonal,center.z);
             p2 = Point3D(build_location.x-half_diagonal,build_location.y+half_diagonal,center.z);
             p3 = Point3D(build_location.x-half_diagonal,build_location.y-half_diagonal,center.z);
             p4 = Point3D(build_location.x+half_diagonal,build_location.y-half_diagonal,center.z);
-            p5 = Point3D(build_location.x+command_radius,build_location.y,center.z);
-            p6 = Point3D(build_location.x,build_location.y+command_radius,center.z);
-            p7 = Point3D(build_location.x-command_radius,build_location.y,center.z);
-            p8 = Point3D(build_location.x,build_location.y-command_radius,center.z);
+            p5 = Point3D(build_location.x+unit_radius,build_location.y,center.z);
+            p6 = Point3D(build_location.x,build_location.y+unit_radius,center.z);
+            p7 = Point3D(build_location.x-unit_radius,build_location.y,center.z);
+            p8 = Point3D(build_location.x,build_location.y-unit_radius,center.z);
             if (Observation()->IsPlacable(p1) && Observation()->IsPlacable(p2) && Observation()->IsPlacable(p3) && Observation()->IsPlacable(p4) &&
             Observation()->IsPlacable(p5) && Observation()->IsPlacable(p6) && Observation()->IsPlacable(p7) && Observation()->IsPlacable(p8)){
                 if (Observation()->IsPathable(p1) && Observation()->IsPathable(p2) && Observation()->IsPathable(p3) && Observation()->IsPathable(p4) &&
@@ -284,15 +288,19 @@ Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radi
         }
     }
 
-    buildCommand->angle = angle;
-    buildCommand->previous_build = build_location;
-    buildCommand->previous_radius = _radius;
+    buildInfo->angle = angle;
+    buildInfo->previous_build = build_location;
+    buildInfo->previous_radius = _radius;
 
     return build_location;
 
 }
 
-bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type, bool simult) {
+Point3D Bot::findNearbyRamp(){
+    return Point3D(0,0,0);
+}
+
+bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type, bool simult, std::string n) {
     const ObservationInterface *observation = Observation();
     
     // get a unit to build the structure
@@ -331,12 +339,17 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
     double min = Distance3D(center1,center2);
     
     double distance;
-    double radius = buildCommand->previous_radius; // arbitrary distance from center of a cluster
+     // arbitrary distance from center of a cluster
     
     Point3D build_location;
+    double radius;
+    Point3D center_pos;
     switch (ability_type_for_structure)
     {
         case ABILITY_ID::BUILD_COMMANDCENTER:
+            if (BuildMap.find("command") == end(BuildMap)){
+                BuildMap["command"] = BuildCommandInfo();
+            }
             // find the center of the cluster that is closest to starting location
             for (const Point3D &center2: clusterCenters){
                 distance = Distance3D(center1,center2);
@@ -346,18 +359,30 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
                     closest_mineral = center2;
                 }
             }
-            
-            buildCommand->closest_mineral = closest_mineral;
+            radius = BuildMap["command"].previous_radius;
+            //buildCommand->closest_mineral = closest_mineral;
             // std::cout << "closest mineral " << closest_mineral.x << " " << closest_mineral.y << " " << closest_mineral.z << std::endl;
 
-            build_location = chooseNearbyBuildLocation(closest_mineral,radius);
+            build_location = chooseNearbyBuildLocation(closest_mineral,radius,ability_type_for_structure,"command");
         
             Actions()->UnitCommand(builder_unit,
                             ability_type_for_structure,
                             build_location);
 
             break;
+        case ABILITY_ID::BUILD_BARRACKS:
+            if (BuildMap.find(n) == end(BuildMap)){
+                std::cout << n << std::endl;
+                BuildMap[n] = BuildBarracksInfo();
+            }
+            radius = BuildMap[n].previous_radius;
+            center_pos = Observation()->GetUnit(command_center_tags[0])->pos;
+            build_location = chooseNearbyBuildLocation(center_pos,radius,ability_type_for_structure,n);
         
+            Actions()->UnitCommand(builder_unit,
+                            ability_type_for_structure,
+                            build_location);
+            break;
         default:
             Actions()->UnitCommand(builder_unit,
                             ability_type_for_structure,
