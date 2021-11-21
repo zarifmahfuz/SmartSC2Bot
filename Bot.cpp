@@ -1,4 +1,3 @@
-#include <sc2api/sc2_unit_filters.h>
 #include "Bot.h"
 #include <iostream>
 #include <vector>
@@ -151,11 +150,9 @@ void Bot::OnStep() {
 
     BarracksHandler();
 
-    TryBuildRefinery();
+    RefineryHandler();
 
     EBayHandler();
-
-    // TryBuildCommandCenter();
 
     // TryBuildEngineeringBay();
     // TryResearchInfantryWeapons();
@@ -164,6 +161,7 @@ void Bot::OnStep() {
     // TryBuildReactorStarport();
     // TryBuildMedivac();
     // TryResearchCombatShield();
+    
 }
 
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
@@ -259,9 +257,13 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
     }
     switch (unit->unit_type.ToType()) {
         case UNIT_TYPEID::TERRAN_REFINERY: {
-            // when a Refinery is first created it already has one worker mining gas, need to assign two more
-            CommandSCVs(2, unit);
-            std::cout << "DEBUG: Assign workers on Refinery\n";
+            // do not add duplicate tags
+            auto p = std::find( begin(refinery_tags), end(refinery_tags), unit->tag);
+            if (p == end(refinery_tags)) {
+                // add the refinery tag to refinery_tags
+                refinery_tags.push_back(unit->tag);
+            }
+            ChangeRefineryState();
             break;
         }
         case UNIT_TYPEID::TERRAN_COMMANDCENTER: {
@@ -576,7 +578,9 @@ void Bot::CommandSCVs(int n, const Unit *target, ABILITY_ID ability) {
         }
         // finally, issue the command
         Actions()->UnitCommand(scv_units, ability, target);
+        return true;
     }
+    return false;
 }
 
 bool Bot::TryBuildEngineeringBay() {

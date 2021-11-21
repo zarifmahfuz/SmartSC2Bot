@@ -57,7 +57,7 @@ bool Bot::TryBuildBarracks(std::string &barracks_) {
     int supply_count = Observation()->GetFoodUsed();
     int required_supply_count = config.barracks.at(barracks_);
     if (supply_count >= required_supply_count) {
-        std::cout << "DEBUG: Build " << barracks_ << " barracks\n";
+        // std::cout << "DEBUG: Build " << barracks_ << " barracks\n";
         // order an SCV to build barracks
         return TryBuildStructure(ABILITY_ID::BUILD_BARRACKS, UNIT_TYPEID::TERRAN_SCV, true);
     }
