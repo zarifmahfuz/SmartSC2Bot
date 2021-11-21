@@ -1,19 +1,16 @@
 from subprocess import check_output
-from sys import argv
+import sys
 
 def main():
-    arguement_list = argv
+    arg = sys.argv
 
-    num_times_to_run_bot = 0
-    bot_arguements = ""
+    try:
+        num_times_to_run_bot = int(arg[1])
+        bot_arguements = " ".join(arg[2:])
 
-    # if no cli options provided
-    if (len(arguement_list) == 1):
-        num_times_to_run_bot = 1
-        bot_arguements = "build\\bin\\Bot.exe -c -a zerg -d Hard -m CactusValleyLE.SC2Map"
-    else:
-        num_times_to_run_bot = int(arguement_list[1])
-        bot_arguements = " ".join(arguement_list[2:])
+    except IndexError:
+        print("Not enough arguments")
+        sys.exit()
     
     run_bot(num_times_to_run_bot, bot_arguements)
 
@@ -30,7 +27,7 @@ def run_bot(n, bot_arguements):
     num_undecided = 0
 
     for i in range(n):
-        out = check_output("{}".format(bot_arguements), shell=True).decode().splitlines()
+        out = check_output(bot_arguements, shell=True).decode().splitlines()
 
         seconds_elapsed = out[-1]
         ai_difficulty = out[-2]
