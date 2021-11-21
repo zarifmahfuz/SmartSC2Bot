@@ -73,8 +73,8 @@ bool Bot::TryBuildBarracksReactor(size_t n) {
         const Unit *unit = Observation()->GetUnit(barracks_tags.at(n-1));
 
         // when the Barracks has no add ons, it's add on tag is 0
-        if ( unit->is_alive && (unit->add_on_tag == 0) ) {
-            // attach a Reactor to this Barracks
+        if ( unit != nullptr && unit->is_alive && (unit->add_on_tag == 0) ) {
+            // attach a Reactor to this Barracks    
             Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
             std::cout << "DEBUG: Attach Reactor on the " << n << "'th Barracks\n";
             return true;
@@ -91,7 +91,7 @@ bool Bot::TryBuildBarracksTechLab(size_t n) {
         const Unit *unit = Observation()->GetUnit(barracks_tags.at(n-1));
 
         // when the Barracks has no add ons, it's add on tag is 0
-        if ( unit->is_alive && (unit->add_on_tag == 0) ) {
+        if ( unit != nullptr && unit->is_alive && (unit->add_on_tag == 0) ) {
             // attach a Tech Lab to this 
             Actions()->UnitCommand(unit, ABILITY_ID::BUILD_TECHLAB_BARRACKS);
             std::cout << "DEBUG: Attach Tech Lab on the " << n << "'th Barracks\n";
@@ -109,7 +109,7 @@ bool Bot::TryResearchBarracksStimpack(size_t n) {
         const Unit *unit = Observation()->GetUnit(barracks_tags.at(n-1));
 
         // when the Barracks has no add ons, it's add on tag is 0
-        if ( unit->is_alive && (unit->add_on_tag != 0) ) {
+        if ( unit != nullptr && unit->is_alive && (unit->add_on_tag != 0) ) {
             // research a Stimpack on the Tech Lab of this Barracks - assuming that the add-on is a Tech Lab
             // get the Tech Lab unit
             const Unit *tech_lab_unit = Observation()->GetUnit(unit->add_on_tag);
@@ -132,7 +132,7 @@ bool Bot::TryStartMarineProd(size_t n, bool has_reactor) {
     // if the n'th barracks has been built
     if (n <= barracks_tags.size()) {
         const Unit *unit = Observation()->GetUnit(barracks_tags.at(n-1));
-        if ( unit->orders.size() == 0 ) {
+        if ( unit != nullptr && unit->orders.size() == 0 ) {
             // the barracks is currently idle - order marine production
             Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
             if (has_reactor) {

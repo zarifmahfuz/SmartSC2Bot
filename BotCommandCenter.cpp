@@ -48,7 +48,7 @@ bool Bot::TryUpgradeToOC(size_t n) {
     if (n <= command_center_tags.size()) {
         const Unit *unit = Observation()->GetUnit(command_center_tags.at(n - 1));
 
-        if (unit->is_alive) {
+        if (unit != nullptr && unit->is_alive) {
             // upgrade the CC to OC if we have enough resources
             if (canAffordUnit(UNIT_TYPEID::TERRAN_ORBITALCOMMAND)) {
                 Actions()->UnitCommand(unit, ABILITY_ID::MORPH_ORBITALCOMMAND);
@@ -87,7 +87,7 @@ void Bot::CommandCenterHandler() {
                 if (barracks_tags.size() > 0 && CountUnitType(UNIT_TYPEID::TERRAN_ORBITALCOMMAND) < 1 && n==1) {
                     ChangeCCState(tag);
                 } 
-                else if (cc_unit->orders.size() == 0) {
+                else if (cc_unit != nullptr && cc_unit->orders.size() == 0) {
                     Actions()->UnitCommand(cc_unit, ABILITY_ID::TRAIN_SCV);
                 }
                 break;
@@ -103,7 +103,7 @@ void Bot::CommandCenterHandler() {
                 break;
             }
             case CommandCenterState::POSTUPGRADE_TRAINSCV:{
-                if (cc_unit->orders.size() == 0) {
+                if ( cc_unit != nullptr && cc_unit->orders.empty()) {
                     Actions()->UnitCommand(cc_unit, ABILITY_ID::TRAIN_SCV);
                     // drop 1 Mule only when there are 0 mules
                     if (CountUnitType(UNIT_TYPEID::TERRAN_MULE) == 0 && first_cc_drop_mules) {

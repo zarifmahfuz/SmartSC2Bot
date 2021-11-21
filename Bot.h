@@ -56,6 +56,12 @@ public:
 private:
     BotConfig config;
 
+    double num_game_loops_elapsed = 0;
+    double const num_game_loops_per_second = 22.4;
+
+    std::string ai_difficulty;
+    std::string map_name;
+
     // centers of all clusters of mineral fields
     std::vector<Point3D> clusterCenters;
 

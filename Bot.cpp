@@ -11,24 +11,144 @@ Bot::Bot(const BotConfig &config)
 
 void Bot::OnGameStart() {
     std::cout << "Hello World!" << std::endl;
-    Units units = Observation()->GetUnits(Unit::Alliance::Self,  IsUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER));
+
+    GameInfo gameInfo = Observation()->GetGameInfo();
+    map_name = gameInfo.map_name;
+
+    // AI Race
+    switch (gameInfo.player_info[1].race_requested) {
+        case Terran: {
+            std::cout << "TERRAN" << std::endl;
+            break;
+        }
+        case Zerg: {
+            std::cout << "ZERG" << std::endl;
+            break;
+        }
+        case Protoss: {
+            std::cout << "PROTOSS" << std::endl;
+            break;
+        }
+        case Random: {
+            std::cout << "RANDOM" << std::endl;
+            break;
+        }
+
+    }
+
+    // AI difficulty
+    switch (gameInfo.player_info[1].difficulty) {
+        case VeryEasy: {
+            ai_difficulty = "VERY EASY";
+            break;
+        }
+        case Easy: {
+            ai_difficulty = "EASY";
+            break;
+        }
+        case Medium: {
+            ai_difficulty = "MEDIUM";
+            break;
+        }
+        case MediumHard: {
+            ai_difficulty = "MEDIUM HARD";
+            break;
+        }
+        case Hard: {
+            ai_difficulty = "HARD";
+            break;
+        }
+        case HardVeryHard: {
+            ai_difficulty = "HARD VERY HARD";
+            break;
+        }
+        case VeryHard: {
+            ai_difficulty = "VERY HARD";
+            break;
+        }
+        case CheatVision: {
+            ai_difficulty = "CHEAT VISION";
+            break;
+        }
+        case CheatMoney: {
+            ai_difficulty = "CHEAT MONEY";
+            break;
+        }
+        case CheatInsane: {
+            ai_difficulty = "CHEAT INSANE";
+            break;
+        }
+    }
+
+    Units units = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER));
     // get the tag of the command center the game starts with
     command_center_tags.push_back(units[0]->tag);
     CCStates[command_center_tags[0]] = CommandCenterState::PREUPGRADE_TRAINSCV;
-    
+
     FindBaseLocations();
     buildCommand = new BuildCommandInfo();
 }
 
-void Bot::OnGameEnd(){
+void Bot::OnGameEnd() {
     delete buildCommand; // free memory
+
+    std::vector<PlayerResult> results = Observation()->GetResults();
+
+    // print map name
+    std::cout << map_name << std::endl;
+
+    // print results
+    if (!results.empty()) {
+        std::cout << "RESULTS: " << std::endl;
+
+        switch (results[0].result) {
+
+            case Win: {
+                std::cout << "WIN" << std::endl;
+                break;
+            }
+
+            case Loss: {
+                std::cout << "LOSS" << std::endl;
+                break;
+            }
+
+            case Tie: {
+                std::cout << "TIE" << std::endl;
+                break;
+            }
+            case Undecided: {
+                std::cout << "UNDECIDED" << std::endl;
+                break;
+            }
+
+            default: {
+                std::cout << "DEFAULT" << std::endl;
+                break;
+            }
+
+
+        }
+
+    }
+
+    // print AI difficulty
+    std::cout << ai_difficulty << std::endl;
+
+    // print number of seconds of game time elapsed
+    std::cout << num_game_loops_elapsed/num_game_loops_per_second << std::endl;
+
+
 }
 
 void Bot::OnStep() {
+
+    ++num_game_loops_elapsed;
+
     CommandCenterHandler();
 
     SupplyDepotHandler();
-    
+
     BarracksHandler();
 
     TryBuildRefinery();
@@ -51,10 +171,15 @@ size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
 }
 
 void Bot::OnUnitIdle(const Unit *unit) {
+
+    if (unit == nullptr) {
+        return;
+    }
     switch (unit->unit_type.ToType()) {
         case UNIT_TYPEID::TERRAN_SCV: {
             // if an SCV is idle, tell it mine minerals
-            const Unit *mineral_target = FindNearestRequestedUnit(unit->pos, Unit::Alliance::Neutral, UNIT_TYPEID::NEUTRAL_MINERALFIELD);
+            const Unit *mineral_target = FindNearestRequestedUnit(unit->pos, Unit::Alliance::Neutral,
+                                                                  UNIT_TYPEID::NEUTRAL_MINERALFIELD);
             if (!mineral_target) {
                 break;
             }
@@ -65,7 +190,7 @@ void Bot::OnUnitIdle(const Unit *unit) {
         case UNIT_TYPEID::TERRAN_BARRACKS: {
             // Barracks has just finished building
             // do not add the tag if it is already present
-            auto p = std::find( begin(barracks_tags), end(barracks_tags), unit->tag);
+            auto p = std::find(begin(barracks_tags), end(barracks_tags), unit->tag);
             if (p == end(barracks_tags)) {
                 // add the barracks tag to barracks_tags
                 barracks_tags.push_back(unit->tag);
@@ -76,7 +201,7 @@ void Bot::OnUnitIdle(const Unit *unit) {
         case UNIT_TYPEID::TERRAN_ENGINEERINGBAY: {
             // E-Bay just finished building
             // do not add the tag if it is already present
-            auto p = std::find( begin(e_bay_tags), end(e_bay_tags), unit->tag);
+            auto p = std::find(begin(e_bay_tags), end(e_bay_tags), unit->tag);
             if (p == end(e_bay_tags)) {
                 // add the E-Bay tag to barracks_tags
                 e_bay_tags.push_back(unit->tag);
@@ -90,29 +215,33 @@ void Bot::OnUnitIdle(const Unit *unit) {
 }
 
 void Bot::OnUnitCreated(const Unit *unit) {
+    if (unit == nullptr) {
+        return;
+    }
+
     switch (unit->unit_type.ToType()) {
         case UNIT_TYPEID::TERRAN_SCV: {
             // SCOUT
             size_t num_scv = CountUnitType(UNIT_TYPEID::TERRAN_SCV);
-            if ( num_scv == static_cast<size_t>(config.firstScout) ) {
+            if (num_scv == static_cast<size_t>(config.firstScout)) {
                 // send the SCV to scout
-                const GameInfo& game_info = Observation()->GetGameInfo();
+                const GameInfo &game_info = Observation()->GetGameInfo();
                 Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, game_info.enemy_start_locations.front());
                 std::cout << "DEBUG: Sending an SCV to scout\n";
             }
             break;
         }
-        case UNIT_TYPEID::TERRAN_COMMANDCENTER:{
+        case UNIT_TYPEID::TERRAN_COMMANDCENTER: {
             // check if the tag is already in command_center_tags
             // if it's not, add it and init its state
             // this check is only necessary because OnUnitCreated() is also called for the first command center
             bool add_cc = true;
-            for (const Tag &cc: command_center_tags){
-                if (cc == unit->tag){
+            for (const Tag &cc: command_center_tags) {
+                if (cc == unit->tag) {
                     add_cc = false;
                 }
             }
-            if (add_cc){
+            if (add_cc) {
                 command_center_tags.push_back(unit->tag);
                 CCStates[unit->tag] = CommandCenterState::BUILDCC;
             }
@@ -125,6 +254,9 @@ void Bot::OnUnitCreated(const Unit *unit) {
 }
 
 void Bot::OnBuildingConstructionComplete(const Unit *unit) {
+    if (unit == nullptr) {
+        return;
+    }
     switch (unit->unit_type.ToType()) {
         case UNIT_TYPEID::TERRAN_REFINERY: {
             // when a Refinery is first created it already has one worker mining gas, need to assign two more
@@ -132,7 +264,7 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
             std::cout << "DEBUG: Assign workers on Refinery\n";
             break;
         }
-        case UNIT_TYPEID::TERRAN_COMMANDCENTER:{
+        case UNIT_TYPEID::TERRAN_COMMANDCENTER: {
             std::cout << "DEBUG: CC finished building" << std::endl;
             ChangeCCState(unit->tag); //command center finished building, so change its state
             break;
@@ -151,7 +283,7 @@ const Unit *Bot::FindNearestRequestedUnit(const Point2D &start, Unit::Alliance a
 
     // iterate over all the units and find the closest unit matching the unit type
     for (const auto &u: units) {
-        if (u->unit_type == unit_type) {
+        if (u != nullptr && u->unit_type == unit_type) {
             float d = DistanceSquared2D(u->pos, start);
             if (d < distance) {
                 distance = d;
@@ -162,45 +294,46 @@ const Unit *Bot::FindNearestRequestedUnit(const Point2D &start, Unit::Alliance a
     return target;
 }
 
-bool Bot::canAffordUnit(UNIT_TYPEID unitType){
+bool Bot::canAffordUnit(UNIT_TYPEID unitType) {
     int mineral_cost = Observation()->GetUnitTypeData()[UnitTypeID(unitType)].mineral_cost;
     int vespene_cost = Observation()->GetUnitTypeData()[UnitTypeID(unitType)].vespene_cost;
     int mineral_count = Observation()->GetMinerals();
     int vespene_count = Observation()->GetVespene();
-    switch(unitType){
+    switch (unitType) {
         // special case for the orbital command, doesn't apply for other units in our build order
-        case UNIT_TYPEID::TERRAN_ORBITALCOMMAND:{
-            int command_cost = Observation()->GetUnitTypeData()[UnitTypeID(UNIT_TYPEID::TERRAN_COMMANDCENTER)].mineral_cost;
-            if (mineral_count >= (mineral_cost - command_cost )){
+        case UNIT_TYPEID::TERRAN_ORBITALCOMMAND: {
+            int command_cost = Observation()->GetUnitTypeData()[UnitTypeID(
+                    UNIT_TYPEID::TERRAN_COMMANDCENTER)].mineral_cost;
+            if (mineral_count >= (mineral_cost - command_cost)) {
                 return true;
             }
             break;
         }
-        default:{
-            if (mineral_count>=mineral_cost && vespene_count>=vespene_cost){
+        default: {
+            if (mineral_count >= mineral_cost && vespene_count >= vespene_cost) {
                 return true;
             }
             break;
-        }     
+        }
     }
     return false;
 }
 
-bool Bot::canAffordUpgrade(UPGRADE_ID upgradeID){
+bool Bot::canAffordUpgrade(UPGRADE_ID upgradeID) {
     int mineral_cost = Observation()->GetUpgradeData()[UpgradeID(upgradeID)].mineral_cost;
     int vespene_cost = Observation()->GetUpgradeData()[UpgradeID(upgradeID)].vespene_cost;
     int mineral_count = Observation()->GetMinerals();
     int vespene_count = Observation()->GetVespene();
-    if (mineral_count>=mineral_cost && vespene_count>=vespene_cost){
-                return true;
+    if (mineral_count >= mineral_cost && vespene_count >= vespene_cost) {
+        return true;
     }
     return false;
 }
 
-bool Bot::eraseTag(std::vector<Tag> &v, const Tag &tag){
+bool Bot::eraseTag(std::vector<Tag> &v, const Tag &tag) {
     auto it = begin(v);
-    for(; it < end(v); ++it){
-        if (*it == tag){
+    for (; it < end(v); ++it) {
+        if (*it == tag) {
             v.erase(it);
             return true;
         }
@@ -208,29 +341,28 @@ bool Bot::eraseTag(std::vector<Tag> &v, const Tag &tag){
     return false;
 }
 
-Point3D Bot::computeClusterCenter(const std::vector<Point3D> &cluster){
-    Point3D center = Point3D(0,0,cluster[0].z);
-    for (const Point3D &p: cluster){
-        center.x+=p.x;
-        center.y+=p.y;
+Point3D Bot::computeClusterCenter(const std::vector<Point3D> &cluster) {
+    Point3D center = Point3D(0, 0, cluster[0].z);
+    for (const Point3D &p: cluster) {
+        center.x += p.x;
+        center.y += p.y;
     }
-    center.x/=cluster.size();
-    center.y/=cluster.size();
+    center.x /= cluster.size();
+    center.y /= cluster.size();
 
     return center;
 }
 
 // convert degree to radians
-double Bot::Convert(double degree)
-{
+double Bot::Convert(double degree) {
     double pi = 3.14159265359;
     return (degree * (pi / 180));
 }
 
 // given a point and a radius, returns a buildable nearby location
-Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radius){
-    Point3D starting_location =  Point3D(center.x+radius,center.y,center.z);
-    if (buildCommand->previous_build != Point3D(0,0,0)){
+Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radius) {
+    Point3D starting_location = Point3D(center.x + radius, center.y, center.z);
+    if (buildCommand->previous_build != Point3D(0, 0, 0)) {
         starting_location = buildCommand->previous_build;
     }
     Point3D build_location;
@@ -241,8 +373,8 @@ Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radi
     bool placeable = false;
     Point3D p1, p2, p3, p4, p5, p6, p7, p8;
     const double command_radius = 2.75;
-    double half_diagonal = sqrt(2)*command_radius;
-    while (!placeable){
+    double half_diagonal = sqrt(2) * command_radius;
+    while (!placeable) {
         // change build location
         double theta = Convert(angle);
 
@@ -254,27 +386,31 @@ Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radi
         py = center.y - ((center.y - starting_location.y) * cs) + ((starting_location.x - center.x) * sn);
 
         ++iter;
-        angle+=5;
-        if (angle == 360){
+        angle += 5;
+        if (angle == 360) {
             ++_radius;
-            starting_location =  Point3D(center.x+_radius,center.y,center.z);
+            starting_location = Point3D(center.x + _radius, center.y, center.z);
             angle = 0;
         }
         //std::cout << "iter: " << iter << " center: ("<< center.x << ", "<< center.y << ") radius: " << _radius << " (" << px << " " << py << ")" << std::endl;
-        if (Observation()->IsPlacable(Point2D(px,py)) && Observation()->IsPathable(Point2D(px,py))){
-            build_location = Point3D(px,py,center.z);
-            p1 = Point3D(build_location.x+half_diagonal,build_location.y+half_diagonal,center.z);
-            p2 = Point3D(build_location.x-half_diagonal,build_location.y+half_diagonal,center.z);
-            p3 = Point3D(build_location.x-half_diagonal,build_location.y-half_diagonal,center.z);
-            p4 = Point3D(build_location.x+half_diagonal,build_location.y-half_diagonal,center.z);
-            p5 = Point3D(build_location.x+command_radius,build_location.y,center.z);
-            p6 = Point3D(build_location.x,build_location.y+command_radius,center.z);
-            p7 = Point3D(build_location.x-command_radius,build_location.y,center.z);
-            p8 = Point3D(build_location.x,build_location.y-command_radius,center.z);
-            if (Observation()->IsPlacable(p1) && Observation()->IsPlacable(p2) && Observation()->IsPlacable(p3) && Observation()->IsPlacable(p4) &&
-            Observation()->IsPlacable(p5) && Observation()->IsPlacable(p6) && Observation()->IsPlacable(p7) && Observation()->IsPlacable(p8)){
-                if (Observation()->IsPathable(p1) && Observation()->IsPathable(p2) && Observation()->IsPathable(p3) && Observation()->IsPathable(p4) &&
-                Observation()->IsPathable(p5) && Observation()->IsPathable(p6) && Observation()->IsPathable(p7) && Observation()->IsPathable(p8)){
+        if (Observation()->IsPlacable(Point2D(px, py)) && Observation()->IsPathable(Point2D(px, py))) {
+            build_location = Point3D(px, py, center.z);
+            p1 = Point3D(build_location.x + half_diagonal, build_location.y + half_diagonal, center.z);
+            p2 = Point3D(build_location.x - half_diagonal, build_location.y + half_diagonal, center.z);
+            p3 = Point3D(build_location.x - half_diagonal, build_location.y - half_diagonal, center.z);
+            p4 = Point3D(build_location.x + half_diagonal, build_location.y - half_diagonal, center.z);
+            p5 = Point3D(build_location.x + command_radius, build_location.y, center.z);
+            p6 = Point3D(build_location.x, build_location.y + command_radius, center.z);
+            p7 = Point3D(build_location.x - command_radius, build_location.y, center.z);
+            p8 = Point3D(build_location.x, build_location.y - command_radius, center.z);
+            if (Observation()->IsPlacable(p1) && Observation()->IsPlacable(p2) && Observation()->IsPlacable(p3) &&
+                Observation()->IsPlacable(p4) &&
+                Observation()->IsPlacable(p5) && Observation()->IsPlacable(p6) && Observation()->IsPlacable(p7) &&
+                Observation()->IsPlacable(p8)) {
+                if (Observation()->IsPathable(p1) && Observation()->IsPathable(p2) && Observation()->IsPathable(p3) &&
+                    Observation()->IsPathable(p4) &&
+                    Observation()->IsPathable(p5) && Observation()->IsPathable(p6) && Observation()->IsPathable(p7) &&
+                    Observation()->IsPathable(p8)) {
                     // std::cout << "found placement! at (" << build_location.x << " " << build_location.y << " " << build_location.z << ") radius: "<< _radius << std::endl;
                     placeable = true;
                 }
@@ -292,12 +428,15 @@ Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radi
 
 bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type, bool simult) {
     const ObservationInterface *observation = Observation();
-    
+
     // get a unit to build the structure
     const Unit *builder_unit = nullptr;
     Units units = observation->GetUnits(Unit::Alliance::Self, IsUnit(unit_type));
-    for (const auto &unit : units) {
-        for (const auto &order : unit->orders) {
+    for (const auto &unit: units) {
+        if (unit == nullptr) {
+            continue;
+        }
+        for (const auto &order: unit->orders) {
             if (order.ability_id == ability_type_for_structure) {
                 // a structure of this type is already building
                 if (simult) {
@@ -320,49 +459,48 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
     float ry = GetRandomScalar();
 
     Point3D closest_mineral; // center of closest mineral field to starting location
-    
+
     // init centers
     Point3D center1 = clusterCenters[0];
     Point3D center2 = clusterCenters[1];
-    
+
     //init min distance found
-    double min = Distance3D(center1,center2);
-    
+    double min = Distance3D(center1, center2);
+
     double distance;
     double radius = buildCommand->previous_radius; // arbitrary distance from center of a cluster
-    
+
     Point3D build_location;
-    switch (ability_type_for_structure)
-    {
+    switch (ability_type_for_structure) {
         case ABILITY_ID::BUILD_COMMANDCENTER:
             // find the center of the cluster that is closest to starting location
-            for (const Point3D &center2: clusterCenters){
-                distance = Distance3D(center1,center2);
-                if (distance < min && center2 != clusterCenters[0]){
+            for (const Point3D &center2: clusterCenters) {
+                distance = Distance3D(center1, center2);
+                if (distance < min && center2 != clusterCenters[0]) {
                     //std::cout << "min distance: " << distance << " between" << center2.x << " " << center2.y << " and " << center1.x << " " << center2.y << std::endl;
                     min = distance;
                     closest_mineral = center2;
                 }
             }
-            
+
             buildCommand->closest_mineral = closest_mineral;
             // std::cout << "closest mineral " << closest_mineral.x << " " << closest_mineral.y << " " << closest_mineral.z << std::endl;
 
-            build_location = chooseNearbyBuildLocation(closest_mineral,radius);
-        
+            build_location = chooseNearbyBuildLocation(closest_mineral, radius);
+
             Actions()->UnitCommand(builder_unit,
-                            ability_type_for_structure,
-                            build_location);
+                                   ability_type_for_structure,
+                                   build_location);
 
             break;
-        
+
         default:
             Actions()->UnitCommand(builder_unit,
-                            ability_type_for_structure,
-                            Point2D(builder_unit->pos.x + rx * 15.0f, builder_unit->pos.y + ry * 15.0f));
+                                   ability_type_for_structure,
+                                   Point2D(builder_unit->pos.x + rx * 15.0f, builder_unit->pos.y + ry * 15.0f));
             break;
     }
-    
+
     return true;
 }
 
@@ -371,7 +509,7 @@ bool Bot::TryBuildRefinery() {
     size_t refineryCount = CountUnitType(UNIT_TYPEID::TERRAN_REFINERY);
 
     if (refineryCount == 0) {
-        if ( Observation()->GetFoodUsed() >= config.firstRefinery ) {
+        if (Observation()->GetFoodUsed() >= config.firstRefinery) {
             buildRefinery = true;
             std::cout << "DEBUG: Build first refinery\n";
         }
@@ -383,8 +521,8 @@ bool Bot::TryBuildRefinery() {
         // get an SCV to build the structure
         const Unit *builder_unit = nullptr;
         Units units = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_SCV));
-        for (const auto &unit : units) {
-            for (const auto &order : unit->orders) {
+        for (const auto &unit: units) {
+            for (const auto &order: unit->orders) {
                 // if a unit already is building a refinery, do nothing.
                 if (order.ability_id == ABILITY_ID::BUILD_REFINERY) {
                     return false;
@@ -397,7 +535,8 @@ bool Bot::TryBuildRefinery() {
         if (!builder_unit) { return false; }
 
         // get the nearest vespene geyser
-        const Unit *vespene_geyser = FindNearestRequestedUnit(builder_unit->pos, Unit::Alliance::Neutral, UNIT_TYPEID::NEUTRAL_VESPENEGEYSER);
+        const Unit *vespene_geyser = FindNearestRequestedUnit(builder_unit->pos, Unit::Alliance::Neutral,
+                                                              UNIT_TYPEID::NEUTRAL_VESPENEGEYSER);
 
         if (!vespene_geyser) { return false; }
         // issue a command to the selected unit
@@ -411,15 +550,18 @@ bool Bot::TryBuildRefinery() {
 
 
 void Bot::CommandSCVs(int n, const Unit *target, ABILITY_ID ability) {
-    if ( CountUnitType(UNIT_TYPEID::TERRAN_SCV) >= n) {
+    if (CountUnitType(UNIT_TYPEID::TERRAN_SCV) >= n) {
         // gather n SCVs
         std::vector<const Unit *> scv_units;
         Units units = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_SCV));
 
         // find SCVs
-        for (const auto& unit : units) {
+        for (const auto &unit: units) {
+            if (unit == nullptr) {
+                continue;
+            }
             bool valid_scv = true;
-            for (const auto &order : unit->orders) {
+            for (const auto &order: unit->orders) {
                 if (order.target_unit_tag == target->tag) {
                     // this SCV already has the command we are trying to issue
                     valid_scv = false;
@@ -498,7 +640,7 @@ bool Bot::TryBuildStarport() {
     // Only build one Starport
     if (!observation->GetUnits(IsUnits(
             {sc2::UNIT_TYPEID::TERRAN_STARPORT, sc2::UNIT_TYPEID::TERRAN_STARPORTREACTOR}
-            )).empty())
+    )).empty())
         return false;
 
     // Only build once a Factory is 100% built
@@ -557,7 +699,7 @@ bool Bot::TryResearchCombatShield() {
 }
 
 // finds the positions of all minerals where the base locations could be
-void Bot::FindBaseLocations(){
+void Bot::FindBaseLocations() {
     // vector storing the locations of all mineral fields
     std::vector<Point3D> mineralFields;
 
@@ -566,10 +708,14 @@ void Bot::FindBaseLocations(){
 
     const ObservationInterface *observation = Observation();
 
-    for(auto & u: observation->GetUnits()){
-        if (isMineral(u)){
+    for (auto &u: observation->GetUnits()) {
+        if (u == nullptr) {
+            continue;
+        }
+
+        if (isMineral(u)) {
             //std::cout << "mineral field at:" << u->pos.x << " " << u->pos.y << "facing: " << u->facing << std::endl;
-            mineralFields.push_back(Point3D(u->pos.x,u->pos.y,u->pos.z));
+            mineralFields.push_back(Point3D(u->pos.x, u->pos.y, u->pos.z));
         }
     }
 
@@ -580,39 +726,39 @@ void Bot::FindBaseLocations(){
     // find starting mineral cluster based on start location
     std::vector<Point3D> start_cluster;
 
-    for (const Point3D &p: mineralFields){
-        if (sqrt(DistanceSquared3D(start_location,p))<=dist_threshold){
+    for (const Point3D &p: mineralFields) {
+        if (sqrt(DistanceSquared3D(start_location, p)) <= dist_threshold) {
             start_cluster.push_back(p);
-            
-       }
+
+        }
     }
     clusters.push_back(start_cluster);
     //test.insert(start_location);
     ++numClusters;
-    
+
     // find other clusters based on distance threshold
     bool skip = false;
     std::vector<Point3D> cluster;
     double distance;
-    for (const Point3D &p1: mineralFields){
-         // prevent finding duplicate clusters
-         for(const std::vector<Point3D> &v: clusters){
-            if (!skip){
-                for (const Point3D &p: v){
-                    if (p==p1){
+    for (const Point3D &p1: mineralFields) {
+        // prevent finding duplicate clusters
+        for (const std::vector<Point3D> &v: clusters) {
+            if (!skip) {
+                for (const Point3D &p: v) {
+                    if (p == p1) {
                         skip = true;
                         break;
                     }
                 }
             }
-         }
+        }
         // find unique cluster based on distance threshold
-        if (!skip){
+        if (!skip) {
             cluster.push_back(p1);
-            for (const Point3D &p2: mineralFields){
-                distance  = sqrt(DistanceSquared3D(p1,p2));
-                if (distance <= dist_threshold && p1 != p2 ){
-                     cluster.push_back(p2);
+            for (const Point3D &p2: mineralFields) {
+                distance = sqrt(DistanceSquared3D(p1, p2));
+                if (distance <= dist_threshold && p1 != p2) {
+                    cluster.push_back(p2);
                 }
             }
             clusters.push_back(cluster);
@@ -627,7 +773,7 @@ void Bot::FindBaseLocations(){
     //std::cout << "distance between starting center and field:" << dist(computeClusterCenter(clusters[0]),temp)<< std::endl;
 
     Point3D center;
-    for (const std::vector<Point3D> &p: clusters){
+    for (const std::vector<Point3D> &p: clusters) {
         center = computeClusterCenter(p);
         //std::cout << "center: " << center.x << " " << center.y << " " << center.z << std::endl;
         clusterCenters.push_back(center);
@@ -636,16 +782,25 @@ void Bot::FindBaseLocations(){
 
 
 // checks if a unit is a mineral
-bool Bot::isMineral(const Unit *u){
+bool Bot::isMineral(const Unit *u) {
+    if (u == nullptr) {
+        return false;
+    }
     UNIT_TYPEID unit_type = u->unit_type;
-    switch (unit_type) 
-    {
-        case UNIT_TYPEID::NEUTRAL_MINERALFIELD         : return true;
-        case UNIT_TYPEID::NEUTRAL_MINERALFIELD750      : return true;
-        case UNIT_TYPEID::NEUTRAL_RICHMINERALFIELD     : return true;
-        case UNIT_TYPEID::NEUTRAL_RICHMINERALFIELD750  : return true;
-        case UNIT_TYPEID::NEUTRAL_LABMINERALFIELD		: return true;
-        case UNIT_TYPEID::NEUTRAL_LABMINERALFIELD750	: return true;
-        default: return false;
+    switch (unit_type) {
+        case UNIT_TYPEID::NEUTRAL_MINERALFIELD         :
+            return true;
+        case UNIT_TYPEID::NEUTRAL_MINERALFIELD750      :
+            return true;
+        case UNIT_TYPEID::NEUTRAL_RICHMINERALFIELD     :
+            return true;
+        case UNIT_TYPEID::NEUTRAL_RICHMINERALFIELD750  :
+            return true;
+        case UNIT_TYPEID::NEUTRAL_LABMINERALFIELD        :
+            return true;
+        case UNIT_TYPEID::NEUTRAL_LABMINERALFIELD750    :
+            return true;
+        default:
+            return false;
     }
 }
