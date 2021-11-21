@@ -15,6 +15,9 @@ public:
     const int engineeringBayFirst;
     const int maxMedivacs;
 
+    // supply levels to build each barracks at
+    const std::vector<int> supplyToBuildBarracksAt;
+
     // a dictionary that maps the n'th Supply Depot to it's required supply level
     std::unordered_map<std::string, int> supply_depot;
 

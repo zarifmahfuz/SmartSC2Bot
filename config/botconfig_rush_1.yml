@@ -4,9 +4,7 @@ SupplyDepot:
     third: 28
     cont: 30
 Barracks:
-    first: 12
-    second: 19
-    third: 19
+    supplyToBuildAt: [12, 19, 19]
 Refinery:
     first: 13     # build the first refinery at supply level 16
 CommandCenter:
