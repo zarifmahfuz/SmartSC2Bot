@@ -114,9 +114,11 @@ void Bot::zBFS(int n, float elev_diff, float sr, float ir, int max_iter) {
             Point2D target_point(target_x, target_y);
             float target_terrain_height = Observation()->TerrainHeight(target_point);
             if ( compareFloats(cc_terrain_height - target_terrain_height, elev_diff) ) {
-                // we have found a point in the natural expansion!
-                std::cout << "DEBUG: Found entrance: x = " << target_x << ", y = " << target_y << std::endl;
-                return;
+                if (Observation()->IsPathable(target_point) && Observation()->IsPlacable(target_point)) {
+                    // we have found a point in the natural expansion!
+                    std::cout << "DEBUG: Found entrance: x = " << target_x << ", y = " << target_y << std::endl;
+                    return;
+                }
             }
         }
         ++iter;
