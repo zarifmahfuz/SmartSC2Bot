@@ -17,6 +17,8 @@ void Bot::OnGameStart() {
     std::cout << "pos: " << units[0]->pos.x << " " << units[0]->pos.y  << std::endl;
     FindBaseLocations();
     BuildMap = std::map<std::string,BuildInfo>();
+    ramp_location = Point3D(0,0,0);
+    starting_location = units[0]->pos;
 }
 
 void Bot::OnGameEnd(){
@@ -33,6 +35,7 @@ void Bot::OnStep() {
 
     EBayHandler();
 
+    findNearbyRamp();
     // TryBuildEngineeringBay();
     // TryResearchInfantryWeapons();
     // TryBuildMissileTurret();
@@ -96,6 +99,9 @@ void Bot::OnUnitCreated(const Unit *unit) {
                 const GameInfo& game_info = Observation()->GetGameInfo();
                 Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, game_info.enemy_start_locations.front());
                 std::cout << "DEBUG: Sending an SCV to scout\n";
+                if (&scout == nullptr){
+                    scout = *unit;
+                }
             }
             break;
         }
@@ -254,12 +260,12 @@ Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radi
         py = center.y - ((center.y - starting_location.y) * cs) + ((starting_location.x - center.x) * sn);
 
         ++iter;
-        angle+=15;
+        angle+=5;
         if (angle == 360){
-            if (_radius<20){
+            if (_radius<25){
                 ++_radius;}
             else{
-                _radius = 6;
+                _radius = buildInfo->default_radius;
             }
             starting_location =  Point3D(center.x+_radius,center.y,center.z);
             angle = 0;
@@ -267,7 +273,6 @@ Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radi
         std::cout << " iter: " << iter << " center: ("<< center.x << ", "<< center.y << ") radius: " << _radius << " (" << px << " " << py << ") " << "distance: " << Distance2D(Point2D(px,py),center) << std::endl;
         std::cout << BuildMap[n].angle << " " << BuildMap[n].unit_radius << " " << BuildMap[n].previous_radius << std::endl;
         if (Observation()->IsPlacable(Point2D(px,py)) && Observation()->IsPathable(Point2D(px,py))){
-            std::cout << "unit radius" << unit_radius << std::endl;
             build_location = Point3D(px,py,center.z);
             p1 = Point3D(build_location.x+half_diagonal,build_location.y+half_diagonal,center.z);
             p2 = Point3D(build_location.x-half_diagonal,build_location.y+half_diagonal,center.z);
@@ -296,8 +301,15 @@ Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radi
 
 }
 
-Point3D Bot::findNearbyRamp(){
-    return Point3D(0,0,0);
+void Bot::findNearbyRamp(){
+    if (&scout != nullptr){
+        int threshold = 2;
+        if (scout.pos.z <= (starting_location.z-threshold) && ramp_location != Point3D(0,0,0)){
+            ramp_location = scout.pos;
+            Actions()->UnitCommand(&scout, ABILITY_ID::SMART, ramp_location);
+            std::cout << "ramp_location " << ramp_location.x << " " << ramp_location.y << " " << ramp_location.z << std::endl;
+        }
+    }
 }
 
 bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type, bool simult, std::string n) {
