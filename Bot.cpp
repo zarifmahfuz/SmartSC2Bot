@@ -33,6 +33,8 @@ void Bot::OnStep() {
 
     EBayHandler();
 
+    AttackHandler();
+
     // TryBuildEngineeringBay();
     // TryResearchInfantryWeapons();
     // TryBuildMissileTurret();
@@ -691,5 +693,22 @@ bool Bot::isMineral(const Unit *u){
         case UNIT_TYPEID::NEUTRAL_LABMINERALFIELD		: return true;
         case UNIT_TYPEID::NEUTRAL_LABMINERALFIELD750	: return true;
         default: return false;
+    }
+}
+
+void Bot::AttackHandler() {
+    const auto *observation = Observation();
+    if ((float)observation->GetGameLoop() * SECONDS_PER_GAME_LOOP >= (float)config.attackTriggerTimeSeconds) {
+        DoAttack();
+    }
+}
+
+void Bot::DoAttack() {
+    const auto *observation = Observation();
+    const auto &target = observation->GetGameInfo().enemy_start_locations.front();
+    const auto infantry_units = observation->GetUnits(
+            Unit::Alliance::Self, IsUnits({UNIT_TYPEID::TERRAN_MARINE, UNIT_TYPEID::TERRAN_MARAUDER}));
+    for (const auto *unit: infantry_units) {
+        Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, target);
     }
 }

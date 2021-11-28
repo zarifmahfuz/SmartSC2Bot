@@ -14,6 +14,7 @@ public:
     const int engineeringBayMaxSupply;
     const int engineeringBayFirst;
     const int maxMedivacs;
+    const int attackTriggerTimeSeconds;
 
     // supply levels to build each barracks at
     const std::vector<int> supplyToBuildBarracksAt;

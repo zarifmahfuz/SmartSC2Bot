@@ -19,4 +19,5 @@ EngineeringBay:
     first: 22
 Medivac:
     maxUnits: 2   # maximum number of medivacs to have at a time
-    
+AttackTrigger:
+    timeSeconds: 540 # number of seconds of game time to trigger an attack at

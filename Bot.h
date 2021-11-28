@@ -30,6 +30,9 @@ enum CommandCenterState { BUILDCC, PREUPGRADE_TRAINSCV, OC, POSTUPGRADE_TRAINSCV
 // states reprenting actions taken by the first Engineering Bay
 enum EBayState {EBAYBUILD, INFANTRYWEAPONSUPGRADELEVEL1};
 
+// number of seconds per game loop from Observation()->GetGameLoop()
+const float SECONDS_PER_GAME_LOOP = 1 / 22.4F;
+
 class Bot : public Agent {
 public:
     explicit Bot(const BotConfig &config);
@@ -239,6 +242,14 @@ private:
     bool TryInfantryWeaponsUpgrade(size_t n);
 
     void ChangeFirstEbayState();
+
+    // ------------------------ INFANTRY UNITS ----------------------
+
+    // Checks if an attack should be made and performs an attack if so.
+    void AttackHandler();
+
+    // Command all infantry units to perform an attack.
+    void DoAttack();
 };
 
 #endif //BASICSC2BOT_BOT_H

@@ -19,7 +19,8 @@ BotConfig::BotConfig(const YAML::Node &node)
           engineeringBayFirst(node["EngineeringBay"]["first"].as<int>()),
           maxMedivacs(node["Medivac"]["maxUnits"].as<int>()),
           maxSimulScouts(node["CommandCenter"]["maxSimulScouts"].as<int>()),
-          supplyToBuildBarracksAt(node["Barracks"]["supplyToBuildAt"].as<std::vector<int>>()) {
+          supplyToBuildBarracksAt(node["Barracks"]["supplyToBuildAt"].as<std::vector<int>>()),
+          attackTriggerTimeSeconds(node["AttackTrigger"]["timeSeconds"].as<int>()) {
     supply_depot.insert( std::make_pair<std::string, int>("first", node["SupplyDepot"]["first"].as<int>()) );
     supply_depot.insert( std::make_pair<std::string, int>("second", node["SupplyDepot"]["second"].as<int>()) );
     supply_depot.insert( std::make_pair<std::string, int>("third", node["SupplyDepot"]["third"].as<int>()) );
