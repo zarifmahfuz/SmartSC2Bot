@@ -83,10 +83,25 @@ void Bot::OnUnitCreated(const Unit *unit) {
             // SCOUT
             size_t num_scv = CountUnitType(UNIT_TYPEID::TERRAN_SCV);
             if ( num_scv == static_cast<size_t>(config.firstScout) ) {
-                // send the SCV to scout
-                const GameInfo& game_info = Observation()->GetGameInfo();
-                Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, game_info.enemy_start_locations.front());
-                //std::cout << "DEBUG: Sending an SCV to scout\n";
+                // Send an SCV to scout
+                // Get all possible enemy start locations
+                auto enemy_start_locations = Observation()->GetGameInfo().enemy_start_locations;
+
+                // Queue the scouting unit to visit each of the enemy start locations, picking the closest each time
+                auto last_pos = Point2D(unit->pos);
+                while (!enemy_start_locations.empty()) {
+                    const auto min_distance_it = std::min_element(enemy_start_locations.begin(),
+                                                                  enemy_start_locations.end(),
+                                                                  [&last_pos](const auto &a, const auto &b) {
+                                                                      return DistanceSquared2D(last_pos, a) <
+                                                                             DistanceSquared2D(last_pos, b);
+                                                                  });
+                    const auto next_pos = *min_distance_it;
+                    enemy_start_locations.erase(min_distance_it);
+                    Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, next_pos, true);
+                    last_pos = next_pos;
+                }
+                std::cout << "DEBUG: Sending an SCV to scout\n";
             }
             break;
         }
