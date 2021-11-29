@@ -96,18 +96,19 @@ void Bot::BarracksHandler() {
             }
         } else if (state == BarracksState::PRODUCING_MARAUDERS) {
             TryProducingMarauder(unit);
-            state = BarracksState::PRODUCING_MARINES;
         }
 
         if (add_on && add_on->unit_type == UNIT_TYPEID::TERRAN_BARRACKSTECHLAB)
-            BarracksTechLabHandler(unit, barracks_tech_lab_states[i]);
+            BarracksTechLabHandler(add_on, barracks_tech_lab_states[i]);
     }
 }
 
 void Bot::BarracksTechLabHandler(const Unit *tech_lab, BarracksTechLabState &state) {
     assert(tech_lab->unit_type == UNIT_TYPEID::TERRAN_BARRACKSTECHLAB);
 
-    if (state == BarracksTechLabState::BUILDING && tech_lab->IsBuildFinished()) {
+    if (state == BarracksTechLabState::NONE) {
+        state = BarracksTechLabState::BUILDING;
+    } else if (state == BarracksTechLabState::BUILDING && tech_lab->IsBuildFinished()) {
         state = BarracksTechLabState::RESEARCHING_STIMPACK;
     } else if (state == BarracksTechLabState::RESEARCHING_STIMPACK) {
         if (have_stimpack) {
