@@ -68,30 +68,25 @@ private:
     // number of mineral field clusters
     int numClusters;
 
-    Point3D ramp_location;
-
-    Point3D starting_location;
-    Unit scout;
-
     // struct to store info related to building command centers in the correct location
     struct BuildCommandInfo:public BuildInfo{
         BuildCommandInfo(){
-            previous_radius = 8;
+            previous_radius = 6;
             default_radius = 6;
             unit_radius = 2.75;
         }
     };
-    // BuildCommandInfo *buildCommand;
 
+    // struct to store info related to building barracks in the correct location
     struct BuildBarracksInfo:public BuildInfo{
         BuildBarracksInfo(){   
-            previous_radius = 8;
-            unit_radius = 5;
-            default_radius = 8;
+            previous_radius = 12;
+            unit_radius = 3;
+            default_radius = 12;
         }
     };
-    // BuildBarracksInfo *buildBarracks;
 
+    // this map stores the build info of a building to be built identified by a string
     std::map<std::string,BuildInfo> BuildMap;
 
     // finds the locations of all bases in the map
@@ -104,7 +99,7 @@ private:
     Point3D computeClusterCenter(const std::vector<Point3D> &cluster);
 
     // chooses a nearby location to a mineral field to build on
-    Point3D chooseNearbyBuildLocation(const Point3D &center, const double &radius, ABILITY_ID ability_type_for_structure, std::string n = " ");
+    Point2D chooseNearbyBuildLocation(const Point3D &center, const double &radius, ABILITY_ID ability_type_for_structure, std::string n = " ");
 
     // find nearby ramp location
     void findNearbyRamp();
