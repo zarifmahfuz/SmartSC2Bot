@@ -73,7 +73,7 @@ private:
         BuildCommandInfo(){
             previous_radius = 6;
             default_radius = 6;
-            unit_radius = 2.75;
+            unit_radius = 3;
         }
     };
 

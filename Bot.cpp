@@ -233,49 +233,71 @@ double Bot::Convert(double degree)
 
 // given a point and a radius, returns a buildable nearby location
 Point2D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radius, ABILITY_ID ability_type_for_structure, std::string n){
+
+    // load BuildInfo struct for barracks or command center
     BuildInfo *buildInfo = &BuildMap[n];
 
+    // start with a vector
     Point2D starting_location =  Point2D(center.x+radius,center.y);
+
     Point2D build_location;
     double cs, sn, px, py;
+
+    // angle to rotate the starting location vector by
     double angle = buildInfo->angle;
+    
     double iter = 0;
     double _radius = radius;
     bool placeable = false;
-    Point2D p1, p2, p3, p4, p5, p6, p7, p8;
+    
     double unit_radius = buildInfo->unit_radius;
-    double half_diagonal = sqrt(2)*unit_radius;
+    
+    // keep rotating a vector around a center point until a location is found
     while (!placeable){
-        // change build location
+        // convert degrees to radians
         double theta = Convert(angle);
 
+        // compute cos and sin for the chosen angle
         cs = cos(theta);
         sn = sin(theta);
 
         // https://stackoverflow.com/questions/620745/c-rotating-a-vector-around-a-certain-point
+        // rotate a vector around a point by an angle theta
         px = ((starting_location.x - center.x) * cs) - ((center.y - starting_location.y) * sn) + center.x;
         py = center.y - ((center.y - starting_location.y) * cs) + ((starting_location.x - center.x) * sn);
 
         ++iter;
+
+        // increase angle every iteration
         angle+=5;
+
+        // after rotating the vector by 360 degrees, increase the radius and keep looking for a placement location
         if (angle == 360){
+            // reset radius if it gets too large
             if (_radius<25){
-                ++_radius;}
+                ++_radius;
+            }
             else{
                 _radius = buildInfo->default_radius;
             }
+            // adjust the starting vector
             starting_location =  Point3D(center.x+_radius,center.y,center.z);
+            // reset angle
             angle = 0;
         }
-        //std::cout << " iter: " << iter << " center: ("<< center.x << ", "<< center.y << ") radius: " << _radius << " (" << px << " " << py << ") " << "distance: " << Distance2D(Point2D(px,py),center) << std::endl;
-        //std::cout << BuildMap[n].angle << " " << BuildMap[n].unit_radius << " " << BuildMap[n].previous_radius << std::endl;
+        
+        // if the vector (px,py) is a placable and pathable point, choose it as a possible build_location
         if (Observation()->IsPlacable(Point2D(px,py)) && Observation()->IsPathable(Point2D(px,py))){
+
+            
             build_location = Point2D(px,py);
+
+            // vector to rotate around the build location to check if there is enough space for a structure
             Point2D check_location = Point2D(build_location.x + buildInfo->unit_radius, build_location.y);
             double inner_angle = 5;
             placeable = true;
 
-            //std::cout << "tags " << barracks_tags.size() << std::endl;
+            // place barracks away from each other to allow for attaching techlab/reactor without conflict
             if (ability_type_for_structure==ABILITY_ID::BUILD_BARRACKS && !barracks_tags.empty()){
                 for (const Tag &t: barracks_tags){
                     Point2D barracks_pos = Observation()->GetUnit(t)->pos;
@@ -284,6 +306,8 @@ Point2D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radi
                     }
                 }
             }
+            // verify that the build location has enough space around it to place a structure
+            // same idea as above, keep rotating a vector around a location and check if there are any points around it that are not placable
             while(placeable){
                 double theta = Convert(inner_angle);
 
