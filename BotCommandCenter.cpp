@@ -62,6 +62,24 @@ bool Bot::TryUpgradeToOC(size_t n) {
     return false;
 }
 
+int Bot::maxSCVs(const int &maxSimulScouts) {
+    int max_scv = 0;
+    // get the command center units
+    // IsUnits expects a vector
+    UNIT_TYPEID cc_unit_types[] = {UNIT_TYPEID::TERRAN_COMMANDCENTER, UNIT_TYPEID::TERRAN_ORBITALCOMMAND};
+    std::vector<UNIT_TYPEID> cc_unit_types_vec(cc_unit_types, cc_unit_types + sizeof(cc_unit_types) / sizeof(UNIT_TYPEID));
+    Units cc_units = Observation()->GetUnits(Unit::Alliance::Self, IsUnits(cc_unit_types_vec));
+    if (cc_units.size() > 0) {
+        max_scv += static_cast<int>(cc_units.size()) * (cc_units[0]->ideal_harvesters);
+    }
+    // get the refinery units
+    Units refinery_units = Observation()->GetUnits(Unit::Alliance::Self,  IsUnit(UNIT_TYPEID::TERRAN_REFINERY));
+    if (refinery_units.size() > 0) {
+        max_scv += static_cast<int>(refinery_units.size()) * (refinery_units[0]->ideal_harvesters);
+    }
+    return max_scv + maxSimulScouts;
+}
+
 
 
 void Bot::CommandCenterHandler() {
@@ -89,7 +107,8 @@ void Bot::CommandCenterHandler() {
                 } 
                 else if (cc_unit->orders.size() == 0) {
                     // do not waste minerals on training SCVs when the first supply depot has not been built yet
-                    if (CountUnitType(UNIT_TYPEID::TERRAN_SUPPLYDEPOT) > 0 && canAffordUnit(UNIT_TYPEID::TERRAN_SCV)) {
+                    bool train_scv_cond = CountUnitType(UNIT_TYPEID::TERRAN_SUPPLYDEPOT) > 0 && canAffordUnit(UNIT_TYPEID::TERRAN_SCV);
+                    if (train_scv_cond) {
                         Actions()->UnitCommand(cc_unit, ABILITY_ID::TRAIN_SCV);
                     }
                 }
@@ -106,15 +125,18 @@ void Bot::CommandCenterHandler() {
                 break;
             }
             case CommandCenterState::POSTUPGRADE_TRAINSCV:{
-                if (cc_unit->orders.size() == 0 && canAffordUnit(UNIT_TYPEID::TERRAN_SCV)) {
+                bool train_scv_cond = cc_unit->orders.size() == 0 && canAffordUnit(UNIT_TYPEID::TERRAN_SCV)
+                                      && CountUnitType(UNIT_TYPEID::TERRAN_SCV) < maxSCVs(config.maxSimulScouts);;
+                if (train_scv_cond) {
                     Actions()->UnitCommand(cc_unit, ABILITY_ID::TRAIN_SCV);
-                    // drop 1 Mule only when there are 0 mules
-                    if (CountUnitType(UNIT_TYPEID::TERRAN_MULE) == 0 && first_cc_drop_mules) {
-                        const Unit *target = FindNearestRequestedUnit(cc_unit->pos, Unit::Alliance::Neutral,
-                                                                      UNIT_TYPEID::NEUTRAL_MINERALFIELD); // find the closet mineral field for the Mule to drop to
-                        Actions()->UnitCommand(cc_unit, ABILITY_ID::EFFECT_CALLDOWNMULE, target); // drop mule
-                    }
                 }
+                // drop 1 Mule only when there are 0 mules
+                if (CountUnitType(UNIT_TYPEID::TERRAN_MULE) == 0 && first_cc_drop_mules) {
+                    const Unit *target = FindNearestRequestedUnit(cc_unit->pos, Unit::Alliance::Neutral,
+                                                                    UNIT_TYPEID::NEUTRAL_MINERALFIELD); // find the closet mineral field for the Mule to drop to
+                    Actions()->UnitCommand(cc_unit, ABILITY_ID::EFFECT_CALLDOWNMULE, target); // drop mule
+                }
+                break;
             }
             default:
                 break;

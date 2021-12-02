@@ -11,6 +11,7 @@ Refinery:
     first: 13     # build the first refinery at supply level 16
 CommandCenter:
     second: 50     # build command center at supply level 19
+    maxSimulScouts: 4
 SCV:
     scout:
         first: 17   # send the 17th SCV to scout
