@@ -89,7 +89,7 @@ void Bot::CommandCenterHandler() {
                 } 
                 else if (cc_unit->orders.size() == 0) {
                     // do not waste minerals on training SCVs when the first supply depot has not been built yet
-                    if (CountUnitType(UNIT_TYPEID::TERRAN_SUPPLYDEPOT) > 0) {
+                    if (CountUnitType(UNIT_TYPEID::TERRAN_SUPPLYDEPOT) > 0 && canAffordUnit(UNIT_TYPEID::TERRAN_SCV)) {
                         Actions()->UnitCommand(cc_unit, ABILITY_ID::TRAIN_SCV);
                     }
                 }
@@ -106,7 +106,7 @@ void Bot::CommandCenterHandler() {
                 break;
             }
             case CommandCenterState::POSTUPGRADE_TRAINSCV:{
-                if (cc_unit->orders.size() == 0) {
+                if (cc_unit->orders.size() == 0 && canAffordUnit(UNIT_TYPEID::TERRAN_SCV)) {
                     Actions()->UnitCommand(cc_unit, ABILITY_ID::TRAIN_SCV);
                     // drop 1 Mule only when there are 0 mules
                     if (CountUnitType(UNIT_TYPEID::TERRAN_MULE) == 0 && first_cc_drop_mules) {

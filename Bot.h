@@ -7,6 +7,7 @@
 #include <map>
 #include <utility>
 #include <math.h>
+#include "BuildInfo.h"
 
 using namespace sc2;
 
@@ -51,7 +52,7 @@ public:
 
     // builds a structure at some distance away from the selected builder unit
     // simult is set to true when you want to allow building a unit when another unit of the same type is under construction
-    bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::TERRAN_SCV, bool simult = false);
+    bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::TERRAN_SCV, bool simult = false, std::string n = " ");
 
     bool TryBuildCommandCenter();
     
@@ -68,21 +69,25 @@ private:
     int numClusters;
 
     // struct to store info related to building command centers in the correct location
-    struct BuildCommandInfo{
-        Point3D previous_build;
-        Point3D closest_mineral;
-        int previous_radius;
-        int iter;
-        double angle;
+    struct BuildCommandInfo:public BuildInfo{
         BuildCommandInfo(){
-            previous_build = Point3D(0,0,0);
-            closest_mineral = Point3D(0,0,0);
             previous_radius = 6;
-            iter = 0;
-            angle = 5;
+            default_radius = 6;
+            unit_radius = 3;
         }
     };
-    BuildCommandInfo *buildCommand;
+
+    // struct to store info related to building barracks in the correct location
+    struct BuildBarracksInfo:public BuildInfo{
+        BuildBarracksInfo(){   
+            previous_radius = 12;
+            unit_radius = 3;
+            default_radius = 12;
+        }
+    };
+
+    // this map stores the build info of a building to be built identified by a string
+    std::map<std::string,BuildInfo> BuildMap;
 
     // finds the locations of all bases in the map
     void FindBaseLocations();
@@ -94,7 +99,10 @@ private:
     Point3D computeClusterCenter(const std::vector<Point3D> &cluster);
 
     // chooses a nearby location to a mineral field to build on
-    Point3D chooseNearbyBuildLocation(const Point3D &center, const double &radius);
+    Point2D chooseNearbyBuildLocation(const Point3D &center, const double &radius, ABILITY_ID ability_type_for_structure, std::string n = " ");
+
+    // find nearby ramp location
+    void findNearbyRamp();
 
     // convert degree to radian
     double Convert(double degree);

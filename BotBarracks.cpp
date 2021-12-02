@@ -56,10 +56,10 @@ bool Bot::TryBuildBarracks(std::string &barracks_) {
 
     int supply_count = Observation()->GetFoodUsed();
     int required_supply_count = config.barracks.at(barracks_);
-    if (supply_count >= required_supply_count) {
-        // std::cout << "DEBUG: Build " << barracks_ << " barracks\n";
+    if (supply_count >= required_supply_count && canAffordUnit(UNIT_TYPEID::TERRAN_BARRACKS)) {
+        //std::cout << "DEBUG: Build " << barracks_ << " barracks\n";
         // order an SCV to build barracks
-        return TryBuildStructure(ABILITY_ID::BUILD_BARRACKS, UNIT_TYPEID::TERRAN_SCV, true);
+        return TryBuildStructure(ABILITY_ID::BUILD_BARRACKS, UNIT_TYPEID::TERRAN_SCV, true,barracks_);
     }
     
     return false;
@@ -76,7 +76,7 @@ bool Bot::TryBuildBarracksReactor(size_t n) {
         if ( unit->is_alive && (unit->add_on_tag == 0) ) {
             // attach a Reactor to this Barracks
             Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
-            std::cout << "DEBUG: Attach Reactor on the " << n << "'th Barracks\n";
+            //std::cout << "DEBUG: Attach Reactor on the " << n << "'th Barracks\n";
             return true;
         }
     }
@@ -94,7 +94,7 @@ bool Bot::TryBuildBarracksTechLab(size_t n) {
         if ( unit->is_alive && (unit->add_on_tag == 0) ) {
             // attach a Tech Lab to this 
             Actions()->UnitCommand(unit, ABILITY_ID::BUILD_TECHLAB_BARRACKS);
-            std::cout << "DEBUG: Attach Tech Lab on the " << n << "'th Barracks\n";
+            //std::cout << "DEBUG: Attach Tech Lab on the " << n << "'th Barracks\n";
             return true;
         }
     }
@@ -116,7 +116,7 @@ bool Bot::TryResearchBarracksStimpack(size_t n) {
 
             // stimpack costs 100 minerals + 100 vespene
             if (Observation()->GetMinerals() >= 100 && Observation()->GetVespene() >= 100) {
-                std::cout << "DEBUG: Research Stimpack at the " << n << "'th Barracks\n";
+                //std::cout << "DEBUG: Research Stimpack at the " << n << "'th Barracks\n";
                 Actions()->UnitCommand(tech_lab_unit, ABILITY_ID::RESEARCH_STIMPACK);
                 return true;
             }
@@ -139,7 +139,7 @@ bool Bot::TryStartMarineProd(size_t n, bool has_reactor) {
                 // can simultaneously produce two units
                 Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
             }
-            std::cout << "DEBUG: Barracks #" << n << " trains Marine\n";
+            //std::cout << "DEBUG: Barracks #" << n << " trains Marine\n";
             return true;
         }
     }
@@ -198,9 +198,10 @@ void Bot::BarracksHandler() {
 
     // state machine for the third Barracks
     std::string third_barracks = "third";
-    if (third_barracks_state == BarracksState::BUILD) {
+    
+    if (third_barracks_state == BarracksState::BUILD && barracks_tags.size()>=2) {
         // if the third Barracks is not already being built
-        if (CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS) < 3) {
+        if (CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS) < 3) {        
             TryBuildBarracks(third_barracks);
         } else {
             ChangeThirdBarracksState();
