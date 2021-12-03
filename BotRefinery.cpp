@@ -43,6 +43,10 @@ bool Bot::TryBuildRefinery(std::string &refinery_) {
         // get the nearest vespene geyser
         const Unit *vespene_geyser = FindNearestRequestedUnit(builder_unit->pos, Unit::Alliance::Neutral, UNIT_TYPEID::NEUTRAL_VESPENEGEYSER);
 
+        // on the Proxima Station Map, vespene geysers are referred as SPACEPLATFORMGEYSER
+        if (!vespene_geyser) {
+            vespene_geyser = FindNearestRequestedUnit(builder_unit->pos, Unit::Alliance::Neutral, UNIT_TYPEID::NEUTRAL_SPACEPLATFORMGEYSER);
+        }
         if (!vespene_geyser) { return false; }
 
         if (canAffordUnit(UNIT_TYPEID::TERRAN_REFINERY)) {
