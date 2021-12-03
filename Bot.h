@@ -207,6 +207,9 @@ private:
     // upgrades the n'th CC to and Orbital Command
     bool TryUpgradeToOC(size_t n);
 
+    // gets the maximum number of SCVs that should be trained during the game
+    int maxSCVs(const int &maxSimulScouts);
+
     // ------------------------ REFINERY ----------------------------
     std::vector<Tag> refinery_tags;
     RefineryState refinery_state = RefineryState::REFINERY_FIRST;

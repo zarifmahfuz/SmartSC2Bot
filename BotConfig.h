@@ -24,6 +24,9 @@ public:
     // a dictionary that maps the n'th barracks to it's required supply level
     std::unordered_map<std::string, int> barracks;
 
+    // defines the maximum number of scouts that will be active during the game at a time
+    const int maxSimulScouts;
+
 private:
     explicit BotConfig(const YAML::Node&);
 };
