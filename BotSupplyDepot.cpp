@@ -24,7 +24,7 @@ bool Bot::TryBuildSupplyDepot(std::string &depot_) {
     int supply_count = Observation()->GetFoodUsed();
     int required_supply_count = config.supply_depot.at(depot_);
 
-    if (supply_count >= required_supply_count) {
+    if (supply_count >= required_supply_count && canAffordUnit(UNIT_TYPEID::TERRAN_SUPPLYDEPOT)) {
         std::cout << "DEBUG: Build " << depot_ << " Supply Depot \n";
         return TryBuildStructure(ABILITY_ID::BUILD_SUPPLYDEPOT);
     }

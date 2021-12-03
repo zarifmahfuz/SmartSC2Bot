@@ -14,13 +14,12 @@ void Bot::OnGameStart() {
     // get the tag of the command center the game starts with
     command_center_tags.push_back(units[0]->tag);
     CCStates[command_center_tags[0]] = CommandCenterState::PREUPGRADE_TRAINSCV;
-    
+    std::cout << "pos: " << units[0]->pos.x << " " << units[0]->pos.y  << std::endl;
     FindBaseLocations();
-    buildCommand = new BuildCommandInfo();
+    BuildMap = std::map<std::string,BuildInfo>();
 }
 
 void Bot::OnGameEnd(){
-    delete buildCommand; // free memory
 }
 
 void Bot::OnStep() {
@@ -96,7 +95,7 @@ void Bot::OnUnitCreated(const Unit *unit) {
                 // send the SCV to scout
                 const GameInfo& game_info = Observation()->GetGameInfo();
                 Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, game_info.enemy_start_locations.front());
-                std::cout << "DEBUG: Sending an SCV to scout\n";
+                //std::cout << "DEBUG: Sending an SCV to scout\n";
             }
             break;
         }
@@ -115,6 +114,9 @@ void Bot::OnUnitCreated(const Unit *unit) {
                 CCStates[unit->tag] = CommandCenterState::BUILDCC;
             }
             break;
+        }
+        case UNIT_TYPEID::TERRAN_BARRACKS:{
+            barracks_tags.push_back(unit->tag);            
         }
         default: {
             break;
@@ -135,7 +137,7 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
             break;
         }
         case UNIT_TYPEID::TERRAN_COMMANDCENTER:{
-            std::cout << "DEBUG: CC finished building" << std::endl;
+           // std::cout << "DEBUG: CC finished building" << std::endl;
             ChangeCCState(unit->tag); //command center finished building, so change its state
             break;
         }
@@ -230,69 +232,113 @@ double Bot::Convert(double degree)
 }
 
 // given a point and a radius, returns a buildable nearby location
-Point3D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radius){
-    Point3D starting_location =  Point3D(center.x+radius,center.y,center.z);
-    if (buildCommand->previous_build != Point3D(0,0,0)){
-        starting_location = buildCommand->previous_build;
-    }
-    Point3D build_location;
+Point2D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radius, ABILITY_ID ability_type_for_structure, std::string n){
+
+    // load BuildInfo struct for barracks or command center
+    BuildInfo *buildInfo = &BuildMap[n];
+
+    // start with a vector
+    Point2D starting_location =  Point2D(center.x+radius,center.y);
+
+    Point2D build_location;
     double cs, sn, px, py;
-    double angle = buildCommand->angle;
+
+    // angle to rotate the starting location vector by
+    double angle = buildInfo->angle;
+    
     double iter = 0;
     double _radius = radius;
     bool placeable = false;
-    Point3D p1, p2, p3, p4, p5, p6, p7, p8;
-    const double command_radius = 2.75;
-    double half_diagonal = sqrt(2)*command_radius;
+    
+    double unit_radius = buildInfo->unit_radius;
+    
+    // keep rotating a vector around a center point until a location is found
     while (!placeable){
-        // change build location
+        // convert degrees to radians
         double theta = Convert(angle);
 
+        // compute cos and sin for the chosen angle
         cs = cos(theta);
         sn = sin(theta);
 
         // https://stackoverflow.com/questions/620745/c-rotating-a-vector-around-a-certain-point
+        // rotate a vector around a point by an angle theta
         px = ((starting_location.x - center.x) * cs) - ((center.y - starting_location.y) * sn) + center.x;
         py = center.y - ((center.y - starting_location.y) * cs) + ((starting_location.x - center.x) * sn);
 
         ++iter;
+
+        // increase angle every iteration
         angle+=5;
+
+        // after rotating the vector by 360 degrees, increase the radius and keep looking for a placement location
         if (angle == 360){
-            ++_radius;
+            // reset radius if it gets too large
+            if (_radius<25){
+                ++_radius;
+            }
+            else{
+                _radius = buildInfo->default_radius;
+            }
+            // adjust the starting vector
             starting_location =  Point3D(center.x+_radius,center.y,center.z);
+            // reset angle
             angle = 0;
         }
-        //std::cout << "iter: " << iter << " center: ("<< center.x << ", "<< center.y << ") radius: " << _radius << " (" << px << " " << py << ")" << std::endl;
+        
+        // if the vector (px,py) is a placable and pathable point, choose it as a possible build_location
         if (Observation()->IsPlacable(Point2D(px,py)) && Observation()->IsPathable(Point2D(px,py))){
-            build_location = Point3D(px,py,center.z);
-            p1 = Point3D(build_location.x+half_diagonal,build_location.y+half_diagonal,center.z);
-            p2 = Point3D(build_location.x-half_diagonal,build_location.y+half_diagonal,center.z);
-            p3 = Point3D(build_location.x-half_diagonal,build_location.y-half_diagonal,center.z);
-            p4 = Point3D(build_location.x+half_diagonal,build_location.y-half_diagonal,center.z);
-            p5 = Point3D(build_location.x+command_radius,build_location.y,center.z);
-            p6 = Point3D(build_location.x,build_location.y+command_radius,center.z);
-            p7 = Point3D(build_location.x-command_radius,build_location.y,center.z);
-            p8 = Point3D(build_location.x,build_location.y-command_radius,center.z);
-            if (Observation()->IsPlacable(p1) && Observation()->IsPlacable(p2) && Observation()->IsPlacable(p3) && Observation()->IsPlacable(p4) &&
-            Observation()->IsPlacable(p5) && Observation()->IsPlacable(p6) && Observation()->IsPlacable(p7) && Observation()->IsPlacable(p8)){
-                if (Observation()->IsPathable(p1) && Observation()->IsPathable(p2) && Observation()->IsPathable(p3) && Observation()->IsPathable(p4) &&
-                Observation()->IsPathable(p5) && Observation()->IsPathable(p6) && Observation()->IsPathable(p7) && Observation()->IsPathable(p8)){
-                    // std::cout << "found placement! at (" << build_location.x << " " << build_location.y << " " << build_location.z << ") radius: "<< _radius << std::endl;
-                    placeable = true;
+
+            
+            build_location = Point2D(px,py);
+
+            // vector to rotate around the build location to check if there is enough space for a structure
+            Point2D check_location = Point2D(build_location.x + buildInfo->unit_radius, build_location.y);
+            double inner_angle = 5;
+            placeable = true;
+
+            // place barracks away from each other to allow for attaching techlab/reactor without conflict
+            if (ability_type_for_structure==ABILITY_ID::BUILD_BARRACKS && !barracks_tags.empty()){
+                for (const Tag &t: barracks_tags){
+                    Point2D barracks_pos = Observation()->GetUnit(t)->pos;
+                    if (Distance2D(barracks_pos, build_location) < (buildInfo->unit_radius) *2){
+                        placeable = false;
+                    }
+                }
+            }
+            // verify that the build location has enough space around it to place a structure
+            // same idea as above, keep rotating a vector around a location and check if there are any points around it that are not placable
+            while(placeable){
+                double theta = Convert(inner_angle);
+
+                cs = cos(theta);
+                sn = sin(theta);
+
+                px = ((check_location.x - build_location.x) * cs) - ((build_location.y - check_location.y) * sn) + build_location.x;
+                py = build_location.y - ((build_location.y - check_location.y) * cs) + ((check_location.x - build_location.x) * sn);
+
+                if (!Observation()->IsPlacable(Point2D(px,py)) || !Observation()->IsPathable(Point2D(px,py))){
+                    placeable = false;
+                }
+                
+                inner_angle+=5;
+                if (inner_angle == 360){
+                    break;
                 }
             }
         }
     }
 
-    buildCommand->angle = angle;
-    buildCommand->previous_build = build_location;
-    buildCommand->previous_radius = _radius;
+    buildInfo->angle = angle;
+    buildInfo->previous_build = build_location;
+    buildInfo->previous_radius = _radius;
 
     return build_location;
 
 }
 
-bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type, bool simult) {
+
+bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type, bool simult, std::string n) {
     const ObservationInterface *observation = Observation();
     
     // get a unit to build the structure
@@ -318,9 +364,7 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
         }
     }
 
-    float rx = GetRandomScalar();
-    float ry = GetRandomScalar();
-
+   
     Point3D closest_mineral; // center of closest mineral field to starting location
     
     // init centers
@@ -331,37 +375,85 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
     double min = Distance3D(center1,center2);
     
     double distance;
-    double radius = buildCommand->previous_radius; // arbitrary distance from center of a cluster
+     // arbitrary distance from center of a cluster
     
-    Point3D build_location;
+    Point2D build_location;
+    double radius;
+    Point3D center_pos;
     switch (ability_type_for_structure)
     {
         case ABILITY_ID::BUILD_COMMANDCENTER:
+            if (BuildMap.find("command") == end(BuildMap)){
+                BuildMap["command"] = BuildCommandInfo();
+            }
             // find the center of the cluster that is closest to starting location
             for (const Point3D &center2: clusterCenters){
                 distance = Distance3D(center1,center2);
                 if (distance < min && center2 != clusterCenters[0]){
-                    //std::cout << "min distance: " << distance << " between" << center2.x << " " << center2.y << " and " << center1.x << " " << center2.y << std::endl;
                     min = distance;
                     closest_mineral = center2;
                 }
             }
-            
-            buildCommand->closest_mineral = closest_mineral;
-            // std::cout << "closest mineral " << closest_mineral.x << " " << closest_mineral.y << " " << closest_mineral.z << std::endl;
+            radius = BuildMap["command"].previous_radius;
 
-            build_location = chooseNearbyBuildLocation(closest_mineral,radius);
+            build_location = chooseNearbyBuildLocation(closest_mineral,radius,ability_type_for_structure,"command");
         
             Actions()->UnitCommand(builder_unit,
                             ability_type_for_structure,
                             build_location);
 
             break;
-        
-        default:
+        case ABILITY_ID::BUILD_BARRACKS:
+
+            // create a build info struct for this barracks if one doesn't already exist
+            if (BuildMap.find(n) == end(BuildMap)){
+                BuildMap[n] = BuildBarracksInfo();
+            }
+            radius = BuildMap[n].previous_radius;
+            center_pos = Observation()->GetUnit(command_center_tags[0])->pos;
+            build_location = chooseNearbyBuildLocation(center_pos,radius,ability_type_for_structure,n);
+            
             Actions()->UnitCommand(builder_unit,
                             ability_type_for_structure,
-                            Point2D(builder_unit->pos.x + rx * 15.0f, builder_unit->pos.y + ry * 15.0f));
+                            build_location);
+            break;
+        default:
+            center_pos = Observation()->GetUnit(command_center_tags[0])->pos;
+            float rx;
+            float ry;
+            int x;
+            int y;
+            bool placable = false;
+            
+            // keep choosing random location until a valid location is found
+            while(!placable){
+                rx = GetRandomScalar();
+                ry = GetRandomScalar();
+                x = GetRandomInteger(-10,10);
+                y = GetRandomInteger(-10,10);
+                build_location = Point2D(center_pos.x + rx*x, center_pos.y + ry*y);
+                while(!Observation()->IsPathable(build_location) || !Observation()->IsPlacable(build_location)){
+                    rx = GetRandomScalar();
+                    ry = GetRandomScalar();
+                    x = GetRandomInteger(-10,10);
+                    y = GetRandomInteger(-10,10);
+                    build_location = Point2D(center_pos.x + rx*x, center_pos.y + ry*y);
+                }
+                placable = true;
+                
+                // place buildings away from barracks
+                for (const Tag &t: barracks_tags){
+                    Point2D barracks_pos = Observation()->GetUnit(t)->pos;
+                    if (Distance2D(barracks_pos, build_location) < 6){
+                        placable = false;
+                        break;
+                    }
+                }
+            }
+
+            Actions()->UnitCommand(builder_unit,
+                            ability_type_for_structure,
+                            build_location);
             break;
     }
     
@@ -435,7 +527,7 @@ bool Bot::TryResearchInfantryWeapons() {
 
     // Make upgrade command
     Actions()->UnitCommand(engineering_bay, ABILITY_ID::RESEARCH_TERRANINFANTRYWEAPONSLEVEL1);
-    std::cout << "DEBUG: Researching Infantry Weapons Level 1 on Engineering Bay\n";
+   // std::cout << "DEBUG: Researching Infantry Weapons Level 1 on Engineering Bay\n";
     return true;
 }
 
@@ -482,7 +574,7 @@ bool Bot::TryBuildReactorStarport() {
     auto *starport = starports[0];
 
     Actions()->UnitCommand(starport, ABILITY_ID::BUILD_REACTOR_STARPORT);
-    std::cout << "DEBUG: Building Reactor Starport\n";
+    //std::cout << "DEBUG: Building Reactor Starport\n";
     return true;
 }
 
@@ -499,7 +591,7 @@ bool Bot::TryBuildMedivac() {
     auto *reactor_starport = reactor_starports[0];
 
     Actions()->UnitCommand(reactor_starport, ABILITY_ID::TRAIN_MEDIVAC);
-    std::cout << "DEBUG: Building Medivac at Reactor Starport\n";
+    //std::cout << "DEBUG: Building Medivac at Reactor Starport\n";
     return true;
 }
 
@@ -512,7 +604,7 @@ bool Bot::TryResearchCombatShield() {
 
     auto *tech_lab = tech_labs[0];
     Actions()->UnitCommand(tech_lab, ABILITY_ID::RESEARCH_COMBATSHIELD);
-    std::cout << "DEBUG: Researching Combat Shield on Barracks' Tech Lab\n";
+    //std::cout << "DEBUG: Researching Combat Shield on Barracks' Tech Lab\n";
     return true;
 }
 
