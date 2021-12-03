@@ -20,7 +20,7 @@ void Bot::OnGameStart() {
 
     // walling
     chosen_scv = Observation()->GetUnits(Unit::Alliance::Self,  IsUnit(UNIT_TYPEID::TERRAN_SCV))[0];
-    WalkSCV(true);
+    WalkSCV(false);
     zBFS(16);
 }
 
@@ -117,6 +117,7 @@ void Bot::zBFS(int n, float elev_diff, float sr, float ir, int max_iter) {
                 if (Observation()->IsPathable(target_point) && Observation()->IsPlacable(target_point)) {
                     // we have found a point in the natural expansion!
                     std::cout << "DEBUG: Found entrance: x = " << target_x << ", y = " << target_y << std::endl;
+                    Actions()->UnitCommand(chosen_scv, ABILITY_ID::SMART, target_point);
                     return;
                 }
             }
