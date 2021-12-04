@@ -9,7 +9,6 @@ class BotConfig {
 public:
     static BotConfig from_file(const std::string &filename);
     const int secondCommandCenter;
-    const int firstScout;
     const int engineeringBayMinSupply;
     const int engineeringBayMaxSupply;
     const int engineeringBayFirst;

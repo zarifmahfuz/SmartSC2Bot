@@ -53,6 +53,9 @@ public:
     // called whenever an upgrade completes
     virtual void OnUpgradeCompleted(UpgradeID) final;
 
+    // called when an enemy unit enters our vision from out of fog of war
+    virtual void OnUnitEnterVision(const Unit *) override;
+
     // counts the current number of units of the specified type
     size_t CountUnitType(UNIT_TYPEID unit_type);
 
@@ -97,6 +100,9 @@ private:
 
     // this map stores the build info of a building to be built identified by a string
     std::map<std::string,BuildInfo> BuildMap;
+
+    // Send a unit to scout for enemy buildings
+    void SendScout();
 
     // finds the locations of all bases in the map
     void FindBaseLocations();
@@ -244,12 +250,20 @@ private:
     void ChangeFirstEbayState();
 
     // ------------------------ INFANTRY UNITS ----------------------
+    // Location of the enemy base.
+    std::unique_ptr<Point2D> enemy_base_location = nullptr;
+
+    // TODO: remove this
+    Tag scouting_scv = 0;
+
+    // true iff infantry units should attack enemy units when they idle, false otherwise.
+    bool units_should_attack = false;
 
     // Checks if an attack should be made and performs an attack if so.
     void AttackHandler();
 
-    // Command all infantry units to perform an attack.
-    void DoAttack();
+    // Command a unit to perform an attack on the enemy.
+    void CommandToAttack(const Unit *attacking_unit);
 };
 
 #endif //BASICSC2BOT_BOT_H

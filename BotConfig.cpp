@@ -13,7 +13,6 @@ BotConfig BotConfig::from_file(const std::string &filename) {
 
 BotConfig::BotConfig(const YAML::Node &node)
         : secondCommandCenter( node["CommandCenter"]["second"].as<int>() ),
-          firstScout( node["SCV"]["scout"]["first"].as<int>() ),
           engineeringBayMinSupply(node["EngineeringBay"]["minSupply"].as<int>()),
           engineeringBayMaxSupply(node["EngineeringBay"]["maxSupply"].as<int>()),
           engineeringBayFirst(node["EngineeringBay"]["first"].as<int>()),

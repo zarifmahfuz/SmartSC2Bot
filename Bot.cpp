@@ -17,6 +17,8 @@ void Bot::OnGameStart() {
     std::cout << "pos: " << units[0]->pos.x << " " << units[0]->pos.y  << std::endl;
     FindBaseLocations();
     BuildMap = std::map<std::string,BuildInfo>();
+
+    SendScout();
 }
 
 void Bot::OnGameEnd(){
@@ -42,6 +44,15 @@ void Bot::OnStep() {
     // TryBuildReactorStarport();
     // TryBuildMedivac();
     // TryResearchCombatShield();
+
+    // TODO: remove
+    const auto *scout = Observation()->GetUnit(scouting_scv);
+    if (scout) {
+        std::cout << "DEBUG: scouting SCV " << scout->tag << " has " << scout->orders.size() << " orders:\n";
+        for (const auto &order : scout->orders) {
+            std::cout << "DEBUG:     " << order.ability_id.to_string() << ' ' << order.target_pos.x << ',' << order.target_pos.y << '\n';
+        }
+    }
     
 }
 
@@ -79,32 +90,6 @@ void Bot::OnUnitIdle(const Unit *unit) {
 
 void Bot::OnUnitCreated(const Unit *unit) {
     switch (unit->unit_type.ToType()) {
-        case UNIT_TYPEID::TERRAN_SCV: {
-            // SCOUT
-            size_t num_scv = CountUnitType(UNIT_TYPEID::TERRAN_SCV);
-            if ( num_scv == static_cast<size_t>(config.firstScout) ) {
-                // Send an SCV to scout
-                // Get all possible enemy start locations
-                auto enemy_start_locations = Observation()->GetGameInfo().enemy_start_locations;
-
-                // Queue the scouting unit to visit each of the enemy start locations, picking the closest each time
-                auto last_pos = Point2D(unit->pos);
-                while (!enemy_start_locations.empty()) {
-                    const auto min_distance_it = std::min_element(enemy_start_locations.begin(),
-                                                                  enemy_start_locations.end(),
-                                                                  [&last_pos](const auto &a, const auto &b) {
-                                                                      return DistanceSquared2D(last_pos, a) <
-                                                                             DistanceSquared2D(last_pos, b);
-                                                                  });
-                    const auto next_pos = *min_distance_it;
-                    enemy_start_locations.erase(min_distance_it);
-                    Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, next_pos, true);
-                    last_pos = next_pos;
-                }
-                std::cout << "DEBUG: Sending an SCV to scout\n";
-            }
-            break;
-        }
         case UNIT_TYPEID::TERRAN_COMMANDCENTER:{
             // check if the tag is already in command_center_tags
             // if it's not, add it and init its state
@@ -713,17 +698,92 @@ bool Bot::isMineral(const Unit *u){
 
 void Bot::AttackHandler() {
     const auto *observation = Observation();
-    if ((float)observation->GetGameLoop() * SECONDS_PER_GAME_LOOP >= (float)config.attackTriggerTimeSeconds) {
-        DoAttack();
+
+    if ((float) observation->GetGameLoop() * SECONDS_PER_GAME_LOOP >= (float) config.attackTriggerTimeSeconds) {
+        units_should_attack = true;
+    }
+
+    if (units_should_attack) {
+        const auto infantry_units = observation->GetUnits(
+                Unit::Alliance::Self, IsUnits({UNIT_TYPEID::TERRAN_MARINE, UNIT_TYPEID::TERRAN_MARAUDER}));
+        for (const auto *unit : infantry_units) {
+            if (unit->orders.empty())
+                CommandToAttack(unit);
+        }
     }
 }
 
-void Bot::DoAttack() {
+void Bot::CommandToAttack(const Unit *unit) {
     const auto *observation = Observation();
-    const auto &target = observation->GetGameInfo().enemy_start_locations.front();
-    const auto infantry_units = observation->GetUnits(
-            Unit::Alliance::Self, IsUnits({UNIT_TYPEID::TERRAN_MARINE, UNIT_TYPEID::TERRAN_MARAUDER}));
-    for (const auto *unit: infantry_units) {
-        Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, target);
+    auto enemy_units = observation->GetUnits(Unit::Alliance::Enemy);
+    if (!enemy_units.empty()) {
+        return;
+        std::sort(enemy_units.begin(), enemy_units.end(), [unit](const auto &a, const auto &b) {
+            return DistanceSquared3D(unit->pos, a->pos) < DistanceSquared3D(unit->pos, b->pos);
+        });
+        Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, enemy_units.front());
+    } else if (enemy_base_location) {
+        Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, *enemy_base_location);
     }
+}
+
+void Bot::OnUnitEnterVision(const Unit *unit) {
+    if (enemy_base_location != nullptr || !unit->is_building)
+        return;
+
+    const auto *observation = Observation();
+    const auto enemy_start_locations = observation->GetGameInfo().enemy_start_locations;
+
+    // Position of the enemy building that was seen
+    const auto building_pos = Point2D(unit->pos);
+
+    // Determine the closest enemy start location
+    const auto closest_enemy_base_it = std::min_element(enemy_start_locations.begin(), enemy_start_locations.end(),
+                                                        [&building_pos](const auto &a, const auto &b) {
+                                                            return DistanceSquared2D(a, building_pos) <
+                                                                   DistanceSquared2D(b, building_pos);
+                                                        });
+
+    // Set the closest enemy start location as the estimated enemy base location
+    enemy_base_location = std::make_unique<Point2D>(*closest_enemy_base_it);
+
+    std::cout << "DEBUG: Found enemy " << unit->unit_type.to_string() << " at " << building_pos.x << ',' << building_pos.y << '\n';
+    std::cout << "DEBUG: Estimating that enemy base location is at " << enemy_base_location->x << ',' << enemy_base_location->y << '\n';
+}
+
+void Bot::SendScout() {
+    const auto *observation = Observation();
+
+    // Get an SCV to do the scouting
+    const auto scvs = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_SCV));
+    if (scvs.empty())
+        return;
+    const auto *scv = scvs.front();
+    scouting_scv = scv->tag;
+
+    // Get all possible enemy start locations
+    auto enemy_start_locations = observation->GetGameInfo().enemy_start_locations;
+
+    std::cout << "DEBUG: Sending an SCV to scout\n";
+
+    bool made_first_command = false;
+    // Queue the scouting unit to visit each of the enemy start locations, picking the closest each time
+    auto last_pos = Point2D(scv->pos);
+    while (!enemy_start_locations.empty()) {
+        const auto min_distance_it = std::min_element(enemy_start_locations.begin(),
+                                                      enemy_start_locations.end(),
+                                                      [&last_pos](const auto &a, const auto &b) {
+                                                          return DistanceSquared2D(last_pos, a) <
+                                                                 DistanceSquared2D(last_pos, b);
+                                                      });
+        const auto next_pos = *min_distance_it;
+        enemy_start_locations.erase(min_distance_it);
+        Actions()->UnitCommand(scv, ABILITY_ID::MOVE_MOVE, next_pos, made_first_command);
+        last_pos = next_pos;
+        made_first_command = true;
+        std::cout << "DEBUG: Commanding " << scv->tag << " to move to " << next_pos.x << ',' << next_pos.y << "\n";
+    }
+
+    // Queue the scouting unit to return to our base
+    Actions()->UnitCommand(scv, ABILITY_ID::MOVE_MOVE, observation->GetUnit(command_center_tags[0])->pos, true);
 }
