@@ -27,12 +27,17 @@ bool Bot::TryBuildRefinery(std::string &refinery_) {
         const Unit *builder_unit = nullptr;
         Units units = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_SCV));
         for (const auto &unit : units) {
+            // Skip the unit if it is the scouting SCV
+            if (unit->tag == scouting_scv)
+                continue;
+
+            // Abort the build if the unit is already building a refinery
             for (const auto &order : unit->orders) {
-                // if a unit already is building a refinery, do nothing.
                 if (order.ability_id == ABILITY_ID::BUILD_REFINERY) {
                     return false;
                 }
             }
+
             builder_unit = unit;
             break;
         }

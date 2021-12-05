@@ -45,15 +45,7 @@ void Bot::OnStep() {
     // TryBuildMedivac();
     // TryResearchCombatShield();
 
-    // TODO: remove
-    const auto *scout = Observation()->GetUnit(scouting_scv);
-    if (scout) {
-        std::cout << "DEBUG: scouting SCV " << scout->tag << " has " << scout->orders.size() << " orders:\n";
-        for (const auto &order : scout->orders) {
-            std::cout << "DEBUG:     " << order.ability_id.to_string() << ' ' << order.target_pos.x << ',' << order.target_pos.y << '\n';
-        }
-    }
-    
+    UpdateScout();
 }
 
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
@@ -63,6 +55,11 @@ size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
 void Bot::OnUnitIdle(const Unit *unit) {
     switch (unit->unit_type.ToType()) {
         case UNIT_TYPEID::TERRAN_SCV: {
+            // Make scouting SCV no longer the scouting SCV when it becomes idle
+            if (unit->tag == scouting_scv) {
+                scouting_scv = 0;
+            }
+
             // if an SCV is idle, tell it mine minerals
             const Unit *mineral_target = FindNearestRequestedUnit(unit->pos, Unit::Alliance::Neutral, UNIT_TYPEID::NEUTRAL_MINERALFIELD);
             if (!mineral_target) {
@@ -475,6 +472,10 @@ bool Bot::CommandSCVs(int n, const Unit *target, ABILITY_ID ability) {
 
         // find SCVs
         for (const auto& unit : units) {
+            // Skip the scouting SCV
+            if (unit->tag == scouting_scv)
+                continue;
+
             bool valid_scv = true;
             for (const auto &order : unit->orders) {
                 if (order.target_unit_tag == target->tag) {
@@ -747,6 +748,13 @@ void Bot::OnUnitEnterVision(const Unit *unit) {
     // Set the closest enemy start location as the estimated enemy base location
     enemy_base_location = std::make_unique<Point2D>(*closest_enemy_base_it);
 
+    // Order the scouting SCV to return to our command center and make it no longer the scouting SCV
+    if (scouting_scv != 0) {
+        auto cc_pos = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER))[0]->pos;
+        Actions()->UnitCommand(observation->GetUnit(scouting_scv), ABILITY_ID::MOVE_MOVE, cc_pos, false);
+        scouting_scv = 0;
+    }
+
     std::cout << "DEBUG: Found enemy " << unit->unit_type.to_string() << " at " << building_pos.x << ',' << building_pos.y << '\n';
     std::cout << "DEBUG: Estimating that enemy base location is at " << enemy_base_location->x << ',' << enemy_base_location->y << '\n';
 }
@@ -758,13 +766,13 @@ void Bot::SendScout() {
     const auto scvs = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_SCV));
     if (scvs.empty())
         return;
+
     const auto *scv = scvs.front();
     scouting_scv = scv->tag;
+    std::cout << "DEBUG: Sending SCV " << scouting_scv << " to scout\n";
 
     // Get all possible enemy start locations
     auto enemy_start_locations = observation->GetGameInfo().enemy_start_locations;
-
-    std::cout << "DEBUG: Sending an SCV to scout\n";
 
     bool made_first_command = false;
     // Queue the scouting unit to visit each of the enemy start locations, picking the closest each time
@@ -781,9 +789,5 @@ void Bot::SendScout() {
         Actions()->UnitCommand(scv, ABILITY_ID::MOVE_MOVE, next_pos, made_first_command);
         last_pos = next_pos;
         made_first_command = true;
-        std::cout << "DEBUG: Commanding " << scv->tag << " to move to " << next_pos.x << ',' << next_pos.y << "\n";
     }
-
-    // Queue the scouting unit to return to our base
-    Actions()->UnitCommand(scv, ABILITY_ID::MOVE_MOVE, observation->GetUnit(command_center_tags[0])->pos, true);
 }

@@ -101,9 +101,6 @@ private:
     // this map stores the build info of a building to be built identified by a string
     std::map<std::string,BuildInfo> BuildMap;
 
-    // Send a unit to scout for enemy buildings
-    void SendScout();
-
     // finds the locations of all bases in the map
     void FindBaseLocations();
 
@@ -253,9 +250,6 @@ private:
     // Location of the enemy base.
     std::unique_ptr<Point2D> enemy_base_location = nullptr;
 
-    // TODO: remove this
-    Tag scouting_scv = 0;
-
     // true iff infantry units should attack enemy units when they idle, false otherwise.
     bool units_should_attack = false;
 
@@ -264,6 +258,13 @@ private:
 
     // Command a unit to perform an attack on the enemy.
     void CommandToAttack(const Unit *attacking_unit);
+
+    // -------------------------- SCOUTING --------------------------
+    // The tag of the scouting SCV, or 0 if there is none.
+    Tag scouting_scv = 0;
+
+    // Send a unit to scout for enemy buildings
+    void SendScout();
 };
 
 #endif //BASICSC2BOT_BOT_H
