@@ -736,25 +736,46 @@ void Bot::CommandToAttack(const Unit *attacking_unit) {
     const auto *observation = Observation();
     auto enemy_units = observation->GetUnits(Unit::Alliance::Enemy);
     if (!enemy_units.empty()) {
-        // If there are enemy units in the observation, attack the closest one
+        // Sort enemy units by distance to attacking unit
         std::sort(enemy_units.begin(), enemy_units.end(), [attacking_unit](const auto &a, const auto &b) {
             return DistanceSquared3D(attacking_unit->pos, a->pos) < DistanceSquared3D(attacking_unit->pos, b->pos);
         });
-        if (have_stimpack && std::count(attacking_unit->buffs.begin(), attacking_unit->buffs.end(), BUFF_ID::STIMPACK) == 0) {
-            Actions()->UnitCommand(attacking_unit, ABILITY_ID::EFFECT_STIM);
+
+        // Attack the closest enemy unit
+        const auto *unit_to_attack = enemy_units.front();
+        if (unit_to_attack->unit_type == UNIT_TYPEID::ZERG_CHANGELINGMARINE ||
+            unit_to_attack->unit_type == UNIT_TYPEID::ZERG_CHANGELINGMARINESHIELD) {
+            Actions()->UnitCommand(attacking_unit, ABILITY_ID::ATTACK, unit_to_attack);
+        } else {
+            Actions()->UnitCommand(attacking_unit, ABILITY_ID::ATTACK_ATTACK, unit_to_attack->pos);
         }
-        Actions()->UnitCommand(attacking_unit, ABILITY_ID::ATTACK_ATTACK, enemy_units.front());
+
+        if (have_stimpack) {
+            // Apply Stimpack to the attacking unit
+            if (attacking_unit->unit_type == UNIT_TYPEID::TERRAN_MARINE) {
+                if (attacking_unit->health >= attacking_unit->health_max / 2) {
+                    Actions()->UnitCommand(attacking_unit, ABILITY_ID::EFFECT_STIM_MARINE);
+                }
+            } else if (attacking_unit->unit_type == UNIT_TYPEID::TERRAN_MARAUDER) {
+                if (attacking_unit->health >= attacking_unit->health_max / 2) {
+                    Actions()->UnitCommand(attacking_unit, ABILITY_ID::EFFECT_STIM_MARAUDER);
+                }
+            }
+        }
     } else if (enemy_base_location) {
         // Otherwise, attack the enemy base if we know where it is
         Actions()->UnitCommand(attacking_unit, ABILITY_ID::ATTACK_ATTACK, *enemy_base_location);
     } else if (expansion_locations) {
         // Otherwise, explore the map by visiting all expansions, starting with the closest
-        const auto closest_expansion_location = std::min_element(
-                expansion_locations->begin(), expansion_locations->end(), [&](const auto &a, const auto &b) {
+        auto sorted_expansions = *expansion_locations;
+        std::sort(
+                sorted_expansions.begin(), sorted_expansions.end(), [&](const auto &a, const auto &b) {
                     return DistanceSquared3D(attacking_unit->pos, a) <
                            DistanceSquared3D(attacking_unit->pos, b);
                 });
-        Actions()->UnitCommand(attacking_unit, ABILITY_ID::ATTACK_ATTACK, *closest_expansion_location);
+        for (const auto &loc : sorted_expansions) {
+            Actions()->UnitCommand(attacking_unit, ABILITY_ID::MOVE_MOVE, loc, true);
+        }
     }
 }
 
