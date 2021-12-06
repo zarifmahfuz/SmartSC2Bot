@@ -1,3 +1,5 @@
+#include <sc2lib/sc2_search.h>
+
 #include "Bot.h"
 #include <iostream>
 #include <vector>
@@ -9,14 +11,21 @@ Bot::Bot(const BotConfig &config)
         : config(config) {}
 
 void Bot::OnGameStart() {
-    std::cout << "Hello World!" << std::endl;
-    Units units = Observation()->GetUnits(Unit::Alliance::Self,  IsUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER));
+    const auto *observation = Observation();
+
+    // Calculate expansion locations and cache the result
+    expansion_locations = std::make_unique<std::vector<Point3D>>(
+            std::move(search::CalculateExpansionLocations(observation, Query())));
+
+    Units units = observation->GetUnits(Unit::Alliance::Self,  IsUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER));
     // get the tag of the command center the game starts with
     command_center_tags.push_back(units[0]->tag);
     CCStates[command_center_tags[0]] = CommandCenterState::PREUPGRADE_TRAINSCV;
     std::cout << "pos: " << units[0]->pos.x << " " << units[0]->pos.y  << std::endl;
     FindBaseLocations();
     BuildMap = std::map<std::string,BuildInfo>();
+
+    SendScout();
 }
 
 void Bot::OnGameEnd(){
@@ -33,6 +42,8 @@ void Bot::OnStep() {
 
     EBayHandler();
 
+    AttackHandler();
+
     // TryBuildEngineeringBay();
     // TryResearchInfantryWeapons();
     // TryBuildMissileTurret();
@@ -40,7 +51,6 @@ void Bot::OnStep() {
     // TryBuildReactorStarport();
     // TryBuildMedivac();
     // TryResearchCombatShield();
-    
 }
 
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
@@ -50,6 +60,11 @@ size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
 void Bot::OnUnitIdle(const Unit *unit) {
     switch (unit->unit_type.ToType()) {
         case UNIT_TYPEID::TERRAN_SCV: {
+            // Make scouting SCV no longer the scouting SCV when it becomes idle
+            if (unit->tag == scouting_scv) {
+                scouting_scv = 0;
+            }
+
             // if an SCV is idle, tell it mine minerals
             const Unit *mineral_target = FindNearestRequestedUnit(unit->pos, Unit::Alliance::Neutral, UNIT_TYPEID::NEUTRAL_MINERALFIELD);
             if (!mineral_target) {
@@ -59,17 +74,6 @@ void Bot::OnUnitIdle(const Unit *unit) {
             Actions()->UnitCommand(unit, ABILITY_ID::SMART, mineral_target);
             break;
         }
-        case UNIT_TYPEID::TERRAN_BARRACKS: {
-            // Barracks has just finished building
-            // do not add the tag if it is already present
-            auto p = std::find( begin(barracks_tags), end(barracks_tags), unit->tag);
-            if (p == end(barracks_tags)) {
-                // add the barracks tag to barracks_tags
-                barracks_tags.push_back(unit->tag);
-            }
-            break;
-        }
-
         case UNIT_TYPEID::TERRAN_ENGINEERINGBAY: {
             // E-Bay just finished building
             // do not add the tag if it is already present
@@ -88,17 +92,6 @@ void Bot::OnUnitIdle(const Unit *unit) {
 
 void Bot::OnUnitCreated(const Unit *unit) {
     switch (unit->unit_type.ToType()) {
-        case UNIT_TYPEID::TERRAN_SCV: {
-            // SCOUT
-            size_t num_scv = CountUnitType(UNIT_TYPEID::TERRAN_SCV);
-            if ( num_scv == static_cast<size_t>(config.firstScout) ) {
-                // send the SCV to scout
-                const GameInfo& game_info = Observation()->GetGameInfo();
-                Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, game_info.enemy_start_locations.front());
-                //std::cout << "DEBUG: Sending an SCV to scout\n";
-            }
-            break;
-        }
         case UNIT_TYPEID::TERRAN_COMMANDCENTER:{
             // check if the tag is already in command_center_tags
             // if it's not, add it and init its state
@@ -115,9 +108,18 @@ void Bot::OnUnitCreated(const Unit *unit) {
             }
             break;
         }
-        case UNIT_TYPEID::TERRAN_BARRACKS:{
-            barracks_tags.push_back(unit->tag);            
-        }
+        case UNIT_TYPEID::TERRAN_BARRACKS:
+            std::cout << "DEBUG: Started building a Barracks (i=" << barracks_tags.size() << ")\n";
+            barracks_tags.push_back(unit->tag);
+            barracks_states.push_back(BarracksState::BUILDING);
+            barracks_tech_lab_states.push_back(BarracksTechLabState::NONE);
+            break;
+        case UNIT_TYPEID::TERRAN_BARRACKSTECHLAB:
+            std::cout << "DEBUG: Started building a Barracks Tech Lab\n";
+            break;
+        case UNIT_TYPEID::TERRAN_BARRACKSREACTOR:
+            std::cout << "DEBUG: Started building a Barracks Reactor\n";
+            break;
         default: {
             break;
         }
@@ -145,6 +147,13 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
             break;
         }
     }
+}
+
+void Bot::OnUpgradeCompleted(UpgradeID upgradeId) {
+    if (upgradeId == UPGRADE_ID::STIMPACK)
+        have_stimpack = true;
+    else if (upgradeId == UPGRADE_ID::COMBATSHIELD)
+        have_combat_shield = true;
 }
 
 const Unit *Bot::FindNearestRequestedUnit(const Point2D &start, Unit::Alliance alliance, UNIT_TYPEID unit_type) {
@@ -468,6 +477,10 @@ bool Bot::CommandSCVs(int n, const Unit *target, ABILITY_ID ability) {
 
         // find SCVs
         for (const auto& unit : units) {
+            // Skip the scouting SCV
+            if (unit->tag == scouting_scv)
+                continue;
+
             bool valid_scv = true;
             for (const auto &order : unit->orders) {
                 if (order.target_unit_tag == target->tag) {
@@ -595,19 +608,6 @@ bool Bot::TryBuildMedivac() {
     return true;
 }
 
-bool Bot::TryResearchCombatShield() {
-    const auto *observation = Observation();
-
-    auto tech_labs = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_BARRACKSTECHLAB));
-    if (tech_labs.empty())
-        return false;
-
-    auto *tech_lab = tech_labs[0];
-    Actions()->UnitCommand(tech_lab, ABILITY_ID::RESEARCH_COMBATSHIELD);
-    //std::cout << "DEBUG: Researching Combat Shield on Barracks' Tech Lab\n";
-    return true;
-}
-
 // finds the positions of all minerals where the base locations could be
 void Bot::FindBaseLocations(){
     // vector storing the locations of all mineral fields
@@ -699,5 +699,114 @@ bool Bot::isMineral(const Unit *u){
         case UNIT_TYPEID::NEUTRAL_LABMINERALFIELD		: return true;
         case UNIT_TYPEID::NEUTRAL_LABMINERALFIELD750	: return true;
         default: return false;
+    }
+}
+
+void Bot::AttackHandler() {
+    const auto *observation = Observation();
+
+    if ((float) observation->GetGameLoop() * SECONDS_PER_GAME_LOOP >= (float) config.attackTriggerTimeSeconds) {
+        units_should_attack = true;
+    }
+
+    if (!units_should_attack)
+        return;
+
+    const auto infantry_units = observation->GetUnits(
+            Unit::Alliance::Self, IsUnits({UNIT_TYPEID::TERRAN_MARINE, UNIT_TYPEID::TERRAN_MARAUDER}));
+    for (const auto *unit : infantry_units) {
+        if (unit->orders.empty()) {
+            CommandToAttack(unit);
+        }
+    }
+}
+
+void Bot::CommandToAttack(const Unit *attacking_unit) {
+    const auto *observation = Observation();
+    auto enemy_units = observation->GetUnits(Unit::Alliance::Enemy);
+    if (!enemy_units.empty()) {
+        // If there are enemy units in the observation, attack the closest one
+        std::sort(enemy_units.begin(), enemy_units.end(), [attacking_unit](const auto &a, const auto &b) {
+            return DistanceSquared3D(attacking_unit->pos, a->pos) < DistanceSquared3D(attacking_unit->pos, b->pos);
+        });
+        if (have_stimpack && std::count(attacking_unit->buffs.begin(), attacking_unit->buffs.end(), BUFF_ID::STIMPACK) == 0) {
+            Actions()->UnitCommand(attacking_unit, ABILITY_ID::EFFECT_STIM);
+        }
+        Actions()->UnitCommand(attacking_unit, ABILITY_ID::ATTACK_ATTACK, enemy_units.front());
+    } else if (enemy_base_location) {
+        // Otherwise, attack the enemy base if we know where it is
+        Actions()->UnitCommand(attacking_unit, ABILITY_ID::ATTACK_ATTACK, *enemy_base_location);
+    } else if (expansion_locations) {
+        // Otherwise, explore the map by visiting all expansions, starting with the closest
+        const auto closest_expansion_location = std::min_element(
+                expansion_locations->begin(), expansion_locations->end(), [&](const auto &a, const auto &b) {
+                    return DistanceSquared3D(attacking_unit->pos, a) <
+                           DistanceSquared3D(attacking_unit->pos, b);
+                });
+        Actions()->UnitCommand(attacking_unit, ABILITY_ID::ATTACK_ATTACK, *closest_expansion_location);
+    }
+}
+
+void Bot::OnUnitEnterVision(const Unit *unit) {
+    if (enemy_base_location != nullptr || !unit->is_building)
+        return;
+
+    const auto *observation = Observation();
+    const auto enemy_start_locations = observation->GetGameInfo().enemy_start_locations;
+
+    // Position of the enemy building that was seen
+    const auto building_pos = Point2D(unit->pos);
+
+    // Determine the closest enemy start location
+    const auto closest_enemy_base_it = std::min_element(enemy_start_locations.begin(), enemy_start_locations.end(),
+                                                        [&building_pos](const auto &a, const auto &b) {
+                                                            return DistanceSquared2D(a, building_pos) <
+                                                                   DistanceSquared2D(b, building_pos);
+                                                        });
+
+    // Set the closest enemy start location as the estimated enemy base location
+    enemy_base_location = std::make_unique<Point2D>(*closest_enemy_base_it);
+
+    // Order the scouting SCV to return to our command center and make it no longer the scouting SCV
+    if (scouting_scv != 0) {
+        auto cc_pos = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER))[0]->pos;
+        Actions()->UnitCommand(observation->GetUnit(scouting_scv), ABILITY_ID::MOVE_MOVE, cc_pos, false);
+        scouting_scv = 0;
+    }
+
+    std::cout << "DEBUG: Found enemy " << unit->unit_type.to_string() << " at " << building_pos.x << ',' << building_pos.y << '\n';
+    std::cout << "DEBUG: Estimating that enemy base location is at " << enemy_base_location->x << ',' << enemy_base_location->y << '\n';
+}
+
+void Bot::SendScout() {
+    const auto *observation = Observation();
+
+    // Get an SCV to do the scouting
+    const auto scvs = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_SCV));
+    if (scvs.empty())
+        return;
+
+    const auto *scv = scvs.front();
+    scouting_scv = scv->tag;
+    std::cout << "DEBUG: Sending SCV " << scouting_scv << " to scout\n";
+
+    // Get all possible enemy start locations
+    auto enemy_start_locations = observation->GetGameInfo().enemy_start_locations;
+
+    bool made_first_command = false;
+    // Queue the scouting unit to visit each of the enemy start locations, picking the closest each time
+    auto last_pos = Point2D(scv->pos);
+    while (!enemy_start_locations.empty()) {
+        const auto min_distance_it = std::min_element(enemy_start_locations.begin(),
+                                                      enemy_start_locations.end(),
+                                                      [&last_pos](const auto &a, const auto &b) {
+                                                          return DistanceSquared2D(last_pos, a) <
+                                                                 DistanceSquared2D(last_pos, b);
+                                                      });
+        const auto next_pos = *min_distance_it;
+        enemy_start_locations.erase(min_distance_it);
+        Actions()->UnitCommand(scv, ABILITY_ID::MOVE_MOVE, next_pos, made_first_command);
+        last_pos = next_pos;
+        made_first_command = true;
     }
 }
