@@ -52,7 +52,7 @@ bool Bot::TryUpgradeToOC(size_t n) {
             // upgrade the CC to OC if we have enough resources
             if (canAffordUnit(UNIT_TYPEID::TERRAN_ORBITALCOMMAND)) {
                 Actions()->UnitCommand(unit, ABILITY_ID::MORPH_ORBITALCOMMAND);
-                std::cout << "DEBUG: Upgrade the " << n << "'th CC to Orbital Command\n";
+                // std::cout << "DEBUG: Upgrade the " << n << "'th CC to Orbital Command\n";
                 return true;
             } else {
                 return false;
@@ -99,13 +99,19 @@ void Bot::CommandCenterHandler() {
     for (const Tag &tag: command_center_tags){
         n++; // keep track of the CC number
         const Unit *cc_unit = Observation()->GetUnit(tag);
+
+        if (cc_unit == nullptr) {
+            std::cout << "DEBUG: CC #" << n << " is a nullptr\n";
+            continue;
+        }
+
         switch(CCStates[tag]){
             case CommandCenterState::PREUPGRADE_TRAINSCV:{
                 // if the first Barracks is ready, upgrade to OC
                 if (barracks_tags.size() > 0 && CountUnitType(UNIT_TYPEID::TERRAN_ORBITALCOMMAND) < 1 && n==1) {
                     ChangeCCState(tag);
-                } 
-                else if (cc_unit->orders.size() == 0) {
+                }
+                if (cc_unit->orders.size() == 0) {
                     // do not waste minerals on training SCVs when the first supply depot has not been built yet
                     bool train_scv_cond = CountUnitType(UNIT_TYPEID::TERRAN_SUPPLYDEPOT) > 0 && canAffordUnit(UNIT_TYPEID::TERRAN_SCV);
                     if (train_scv_cond) {
