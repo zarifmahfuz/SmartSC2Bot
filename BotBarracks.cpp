@@ -8,7 +8,7 @@ void Bot::TryBuildingBarracks() {
     auto current_supply = observation->GetFoodUsed();
     auto required_supply = config.supplyToBuildBarracksAt.at(num_barracks);
 
-    if (required_supply >= current_supply && canAffordUnit(UNIT_TYPEID::TERRAN_BARRACKS)) {
+    if (current_supply >= required_supply && canAffordUnit(UNIT_TYPEID::TERRAN_BARRACKS)) {
         // order an SCV to build barracks
         TryBuildStructure(ABILITY_ID::BUILD_BARRACKS, UNIT_TYPEID::TERRAN_SCV, true);
     }
@@ -26,10 +26,8 @@ void Bot::TryBuildingBarracksTechLab(const Unit *barracks) {
 
 void Bot::TryResearchingStimpack(const Unit *tech_lab) {
     assert(tech_lab->unit_type == UNIT_TYPEID::TERRAN_BARRACKSTECHLAB);
-    const auto *observation = Observation();
 
-    // Stimpack costs 100 minerals + 100 vespene
-    if (observation->GetMinerals() >= 100 && observation->GetVespene() >= 100) {
+    if (canAffordUpgrade(UPGRADE_ID::STIMPACK)) {
         std::cout << "DEBUG: Researching Stimpack at a Barracks Tech Lab\n";
         Actions()->UnitCommand(tech_lab, ABILITY_ID::RESEARCH_STIMPACK);
     }
@@ -37,10 +35,8 @@ void Bot::TryResearchingStimpack(const Unit *tech_lab) {
 
 void Bot::TryResearchingCombatShield(const Unit *tech_lab) {
     assert(tech_lab->unit_type == UNIT_TYPEID::TERRAN_BARRACKSTECHLAB);
-    const auto *observation = Observation();
 
-    // Combat Shield costs 100 minerals + 100 vespene
-    if (observation->GetMinerals() >= 100 && observation->GetVespene() >= 100) {
+    if (canAffordUpgrade(UPGRADE_ID::COMBATSHIELD)) {
         std::cout << "DEBUG: Researching Combat Shield at a Barracks Tech Lab\n";
         Actions()->UnitCommand(tech_lab, ABILITY_ID::RESEARCH_COMBATSHIELD);
     }

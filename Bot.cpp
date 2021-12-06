@@ -1,3 +1,5 @@
+#include <sc2lib/sc2_search.h>
+
 #include "Bot.h"
 #include <iostream>
 #include <vector>
@@ -9,8 +11,13 @@ Bot::Bot(const BotConfig &config)
         : config(config) {}
 
 void Bot::OnGameStart() {
-    std::cout << "Hello World!" << std::endl;
-    Units units = Observation()->GetUnits(Unit::Alliance::Self,  IsUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER));
+    const auto *observation = Observation();
+
+    // Calculate expansion locations and cache the result
+    expansion_locations = std::make_unique<std::vector<Point3D>>(
+            std::move(search::CalculateExpansionLocations(observation, Query())));
+
+    Units units = observation->GetUnits(Unit::Alliance::Self,  IsUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER));
     // get the tag of the command center the game starts with
     command_center_tags.push_back(units[0]->tag);
     CCStates[command_center_tags[0]] = CommandCenterState::PREUPGRADE_TRAINSCV;
@@ -44,8 +51,6 @@ void Bot::OnStep() {
     // TryBuildReactorStarport();
     // TryBuildMedivac();
     // TryResearchCombatShield();
-
-    UpdateScout();
 }
 
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
@@ -704,27 +709,41 @@ void Bot::AttackHandler() {
         units_should_attack = true;
     }
 
-    if (units_should_attack) {
-        const auto infantry_units = observation->GetUnits(
-                Unit::Alliance::Self, IsUnits({UNIT_TYPEID::TERRAN_MARINE, UNIT_TYPEID::TERRAN_MARAUDER}));
-        for (const auto *unit : infantry_units) {
-            if (unit->orders.empty())
-                CommandToAttack(unit);
+    if (!units_should_attack)
+        return;
+
+    const auto infantry_units = observation->GetUnits(
+            Unit::Alliance::Self, IsUnits({UNIT_TYPEID::TERRAN_MARINE, UNIT_TYPEID::TERRAN_MARAUDER}));
+    for (const auto *unit : infantry_units) {
+        if (unit->orders.empty()) {
+            CommandToAttack(unit);
         }
     }
 }
 
-void Bot::CommandToAttack(const Unit *unit) {
+void Bot::CommandToAttack(const Unit *attacking_unit) {
     const auto *observation = Observation();
     auto enemy_units = observation->GetUnits(Unit::Alliance::Enemy);
     if (!enemy_units.empty()) {
-        return;
-        std::sort(enemy_units.begin(), enemy_units.end(), [unit](const auto &a, const auto &b) {
-            return DistanceSquared3D(unit->pos, a->pos) < DistanceSquared3D(unit->pos, b->pos);
+        // If there are enemy units in the observation, attack the closest one
+        std::sort(enemy_units.begin(), enemy_units.end(), [attacking_unit](const auto &a, const auto &b) {
+            return DistanceSquared3D(attacking_unit->pos, a->pos) < DistanceSquared3D(attacking_unit->pos, b->pos);
         });
-        Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, enemy_units.front());
+        if (have_stimpack && std::count(attacking_unit->buffs.begin(), attacking_unit->buffs.end(), BUFF_ID::STIMPACK) == 0) {
+            Actions()->UnitCommand(attacking_unit, ABILITY_ID::EFFECT_STIM);
+        }
+        Actions()->UnitCommand(attacking_unit, ABILITY_ID::ATTACK_ATTACK, enemy_units.front());
     } else if (enemy_base_location) {
-        Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, *enemy_base_location);
+        // Otherwise, attack the enemy base if we know where it is
+        Actions()->UnitCommand(attacking_unit, ABILITY_ID::ATTACK_ATTACK, *enemy_base_location);
+    } else if (expansion_locations) {
+        // Otherwise, explore the map by visiting all expansions, starting with the closest
+        const auto closest_expansion_location = std::min_element(
+                expansion_locations->begin(), expansion_locations->end(), [&](const auto &a, const auto &b) {
+                    return DistanceSquared3D(attacking_unit->pos, a) <
+                           DistanceSquared3D(attacking_unit->pos, b);
+                });
+        Actions()->UnitCommand(attacking_unit, ABILITY_ID::ATTACK_ATTACK, *closest_expansion_location);
     }
 }
 

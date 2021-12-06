@@ -74,6 +74,9 @@ public:
 private:
     BotConfig config;
 
+    // the location of each of the expansions
+    std::unique_ptr<std::vector<Point3D>> expansion_locations = nullptr;
+
     // centers of all clusters of mineral fields
     std::vector<Point3D> clusterCenters;
 
