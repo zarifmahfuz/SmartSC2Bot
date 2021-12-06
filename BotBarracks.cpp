@@ -66,35 +66,46 @@ void Bot::BarracksHandler() {
 
     for (size_t i = 0; i < barracks_tags.size(); ++i) {
         const auto *unit = observation->GetUnit(barracks_tags[i]);
+
+        if (unit == nullptr) {
+            std::cout << "DEBUG: Barracks i=" << i << " unit is a nullptr\n";
+            continue;
+        }
         const Unit* add_on = observation->GetUnit(unit->add_on_tag);
         auto &state = barracks_states[i];
+        
 
         if (state == BarracksState::BUILDING) {
             if (unit->IsBuildFinished()) {
                 state = i == 0 ? BarracksState::BUILDING_TECH_LAB : BarracksState::BUILDING_REACTOR;
             }
         } else if (state == BarracksState::BUILDING_TECH_LAB) {
-            if (add_on) {
+            if (add_on != nullptr && add_on->unit_type == UNIT_TYPEID::TERRAN_BARRACKSTECHLAB) {
                 state = BarracksState::PRODUCING_MARINES;
             } else {
                 TryBuildingBarracksTechLab(unit);
             }
         } else if (state == BarracksState::BUILDING_REACTOR) {
-            if (add_on) {
+            if (add_on != nullptr && add_on->unit_type == UNIT_TYPEID::TERRAN_BARRACKSREACTOR) {
                 state = BarracksState::PRODUCING_MARINES;
             } else {
                 TryBuildingBarracksReactor(unit);
             }
         } else if (state == BarracksState::PRODUCING_MARINES) {
-            TryProducingMarine(unit);
-            if (add_on && add_on->unit_type == UNIT_TYPEID::TERRAN_BARRACKSTECHLAB) {
+            // do not overload the queue
+            if (unit->orders.size() < 2)
+                TryProducingMarine(unit);
+
+            if (add_on != nullptr && add_on->unit_type == UNIT_TYPEID::TERRAN_BARRACKSTECHLAB) {
                 state = BarracksState::PRODUCING_MARAUDERS;
             }
         } else if (state == BarracksState::PRODUCING_MARAUDERS) {
-            TryProducingMarauder(unit);
+            // do not overload the queue
+            if (unit->orders.size() < 1)
+                TryProducingMarauder(unit);
         }
 
-        if (add_on && add_on->unit_type == UNIT_TYPEID::TERRAN_BARRACKSTECHLAB)
+        if (add_on != nullptr && add_on->unit_type == UNIT_TYPEID::TERRAN_BARRACKSTECHLAB)
             BarracksTechLabHandler(add_on, barracks_tech_lab_states[i]);
     }
 }

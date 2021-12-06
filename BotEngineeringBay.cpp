@@ -54,6 +54,8 @@ bool Bot::TryInfantryWeaponsUpgrade(size_t n) {
     if (n <= e_bay_tags.size()) {
         const Unit *unit = Observation()->GetUnit(e_bay_tags.at(n - 1));
 
+        if (unit == nullptr) { return false; }
+
         Actions()->UnitCommand(unit, ABILITY_ID::RESEARCH_TERRANINFANTRYWEAPONSLEVEL1);
 
         return true;

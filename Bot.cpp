@@ -43,14 +43,6 @@ void Bot::OnStep() {
     EBayHandler();
 
     AttackHandler();
-
-    // TryBuildEngineeringBay();
-    // TryResearchInfantryWeapons();
-    // TryBuildMissileTurret();
-    // TryBuildStarport();
-    // TryBuildReactorStarport();
-    // TryBuildMedivac();
-    // TryResearchCombatShield();
 }
 
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
@@ -141,6 +133,10 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
         case UNIT_TYPEID::TERRAN_COMMANDCENTER:{
            // std::cout << "DEBUG: CC finished building" << std::endl;
             ChangeCCState(unit->tag); //command center finished building, so change its state
+            break;
+        }
+        case UNIT_TYPEID::TERRAN_SUPPLYDEPOT: {
+            ChangeSupplyDepotState();
             break;
         }
         default: {
@@ -354,6 +350,9 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
     const Unit *builder_unit = nullptr;
     Units units = observation->GetUnits(Unit::Alliance::Self, IsUnit(unit_type));
     for (const auto &unit : units) {
+        // do not interrupt an SCV that already has 2 orders
+        if (unit->orders.size() >= 2) { continue; }
+
         for (const auto &order : unit->orders) {
             if (order.ability_id == ability_type_for_structure) {
                 // a structure of this type is already building
@@ -502,111 +501,6 @@ bool Bot::CommandSCVs(int n, const Unit *target, ABILITY_ID ability) {
     return false;
 }
 
-bool Bot::TryBuildEngineeringBay() {
-    const auto *observation = Observation();
-
-    // Only build one Engineering Bay
-    if (CountUnitType(sc2::UNIT_TYPEID::TERRAN_ENGINEERINGBAY) > 0)
-        return false;
-
-    // Only build if in correct supply range
-    if (observation->GetFoodUsed() < config.engineeringBayMinSupply
-        || observation->GetFoodUsed() > config.engineeringBayMaxSupply)
-        return false;
-
-    return TryBuildStructure(sc2::ABILITY_ID::BUILD_ENGINEERINGBAY);
-}
-
-const Unit *Bot::GetEngineeringBay() {
-    auto engineering_bays = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_ENGINEERINGBAY));
-    if (engineering_bays.empty())
-        return nullptr;
-    return engineering_bays[0];
-}
-
-bool Bot::TryResearchInfantryWeapons() {
-    // Only research if the Engineering Bay exists
-    auto *engineering_bay = GetEngineeringBay();
-    if (!engineering_bay)
-        return false;
-
-    // Return if Engineering Bay is not yet built,
-    // the Engineering Bay already has orders,
-    // or the upgrade is already complete
-    if (engineering_bay->build_progress < 1.0F
-        || !engineering_bay->orders.empty()
-        || engineering_bay->attack_upgrade_level >= 1)
-        return false;
-
-    // Make upgrade command
-    Actions()->UnitCommand(engineering_bay, ABILITY_ID::RESEARCH_TERRANINFANTRYWEAPONSLEVEL1);
-   // std::cout << "DEBUG: Researching Infantry Weapons Level 1 on Engineering Bay\n";
-    return true;
-}
-
-bool Bot::TryBuildMissileTurret() {
-    // Only build if there is not already a Missile Turret
-    if (CountUnitType(UNIT_TYPEID::TERRAN_MISSILETURRET) > 0)
-        return false;
-
-    // Only build if the Engineering Bay exists
-    auto *engineering_bay = GetEngineeringBay();
-    if (!engineering_bay)
-        return false;
-
-    return TryBuildStructure(ABILITY_ID::BUILD_MISSILETURRET);
-}
-
-bool Bot::TryBuildStarport() {
-    const auto *observation = Observation();
-
-    // Only build one Starport
-    if (!observation->GetUnits(IsUnits(
-            {sc2::UNIT_TYPEID::TERRAN_STARPORT, sc2::UNIT_TYPEID::TERRAN_STARPORTREACTOR}
-            )).empty())
-        return false;
-
-    // Only build once a Factory is 100% built
-    const auto factories = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_FACTORY));
-    return std::any_of(factories.begin(), factories.end(), [this](const auto &factory) {
-        return factory->build_progress >= 1.0F && TryBuildStructure(sc2::ABILITY_ID::BUILD_STARPORT);
-    });
-}
-
-bool Bot::TryBuildReactorStarport() {
-    const auto *observation = Observation();
-
-    // Only build one Reactor Starport
-    if (CountUnitType(sc2::UNIT_TYPEID::TERRAN_STARPORTREACTOR) > 0)
-        return false;
-
-    // Get existing Starport
-    auto starports = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_STARPORT));
-    if (starports.empty())
-        return false;
-    auto *starport = starports[0];
-
-    Actions()->UnitCommand(starport, ABILITY_ID::BUILD_REACTOR_STARPORT);
-    //std::cout << "DEBUG: Building Reactor Starport\n";
-    return true;
-}
-
-bool Bot::TryBuildMedivac() {
-    const auto *observation = Observation();
-
-    // Only build up to two medivacs at a time
-    if (CountUnitType(sc2::UNIT_TYPEID::TERRAN_MEDIVAC) > config.maxMedivacs)
-        return false;
-
-    auto reactor_starports = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_STARPORTREACTOR));
-    if (reactor_starports.empty())
-        return false;
-    auto *reactor_starport = reactor_starports[0];
-
-    Actions()->UnitCommand(reactor_starport, ABILITY_ID::TRAIN_MEDIVAC);
-    //std::cout << "DEBUG: Building Medivac at Reactor Starport\n";
-    return true;
-}
 
 // finds the positions of all minerals where the base locations could be
 void Bot::FindBaseLocations(){

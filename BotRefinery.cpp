@@ -66,27 +66,29 @@ bool Bot::TryBuildRefinery(std::string &refinery_) {
 
 bool Bot::AssignWorkersToRefinery(const Tag &tag, int target_workers) {
     const Unit *refinery_unit = Observation()->GetUnit(tag);
+    if (refinery_unit == nullptr) { return false; }
     if (refinery_unit->assigned_harvesters < target_workers) {
         int scvs_required = target_workers - refinery_unit->assigned_harvesters;
         return CommandSCVs(scvs_required, refinery_unit);
     }
-    return true;
+    return false;
 }
 
 void Bot::RefineryHandler() {
     if (refinery_state == RefineryState::REFINERY_FIRST) {
         // try to build the first refinery
-        // do not waste minerals on building the first refinery when the first supply depot has not been built yet
-        if (CountUnitType(UNIT_TYPEID::TERRAN_REFINERY) < 1 && CountUnitType(UNIT_TYPEID::TERRAN_SUPPLYDEPOT) > 0) {
+        // the first refinery should be built after the first supply depot and the first barracks are built
+        bool build_cond = CountUnitType(UNIT_TYPEID::TERRAN_REFINERY) < 1 &&
+                          CountUnitType(UNIT_TYPEID::TERRAN_SUPPLYDEPOT) > 0 &&
+                          CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS) > 0;
+        if (build_cond) {
             std::string first("first");
             TryBuildRefinery(first);
         }
     } else if (refinery_state == RefineryState::ASSIGN_WORKERS) {
-        // changes state when all the refineries have a target amount of workers assigned
-        bool change_state = true;
+        // assign workers to the refinery if they are under a target amount of workers
         for (const Tag &tag : refinery_tags) {
-            if (AssignWorkersToRefinery(tag, 3) == false) { change_state = false; }
+            AssignWorkersToRefinery(tag, 3);
         }
-        if (change_state) { ChangeRefineryState(); }
     }
 }
