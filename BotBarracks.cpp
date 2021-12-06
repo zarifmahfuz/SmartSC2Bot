@@ -1,222 +1,122 @@
+#include <sc2api/sc2_unit_filters.h>
+
 #include "Bot.h"
 
-void Bot::ChangeFirstBarracksState() {
-    switch (first_barracks_state) {
-        case (BarracksState::BUILD): {
-            first_barracks_state = BarracksState::TECHLAB;
-            break;
-        }
-        case (BarracksState::TECHLAB): {
-            first_barracks_state = BarracksState::STIMPACK;
-            break;
-        }
-        case (BarracksState::STIMPACK): {
-            first_barracks_state = BarracksState::MARINEPROD;
-            break;
-        }
-        default: {
-            break;
-        }
-    }
-}
+void Bot::TryBuildingBarracks() {
+    const auto *observation = Observation();
+    auto num_barracks = observation->GetUnits(IsUnit(sc2::UNIT_TYPEID::TERRAN_BARRACKS)).size();
+    auto current_supply = observation->GetFoodUsed();
+    auto required_supply = config.supplyToBuildBarracksAt.at(num_barracks);
 
-void Bot::ChangeSecondBarracksState() {
-    switch (second_barracks_state) {
-        case (BarracksState::BUILD): {
-            second_barracks_state = BarracksState::REACTOR;
-            break;
-        }
-        case (BarracksState::REACTOR): {
-            second_barracks_state = BarracksState::MARINEPROD;
-            break;
-        }
-        default: {
-            break;
-        }
-    }
-}
-
-void Bot::ChangeThirdBarracksState() {
-    switch (third_barracks_state) {
-        case (BarracksState::BUILD): {
-            third_barracks_state = BarracksState::REACTOR;
-            break;
-        }
-        case (BarracksState::REACTOR): {
-            third_barracks_state = BarracksState::MARINEPROD;
-            break;
-        }
-        default: {
-            break;
-        }
-    }
-}
-
-bool Bot::TryBuildBarracks(std::string &barracks_) {
-
-    int supply_count = Observation()->GetFoodUsed();
-    int required_supply_count = config.barracks.at(barracks_);
-    if (supply_count >= required_supply_count && canAffordUnit(UNIT_TYPEID::TERRAN_BARRACKS)) {
-        //std::cout << "DEBUG: Build " << barracks_ << " barracks\n";
+    if (current_supply >= required_supply && canAffordUnit(UNIT_TYPEID::TERRAN_BARRACKS)) {
         // order an SCV to build barracks
-        return TryBuildStructure(ABILITY_ID::BUILD_BARRACKS, UNIT_TYPEID::TERRAN_SCV, true,barracks_);
+        TryBuildStructure(ABILITY_ID::BUILD_BARRACKS, UNIT_TYPEID::TERRAN_SCV, true);
     }
-    
-    return false;
 }
 
-bool Bot::TryBuildBarracksReactor(size_t n) {
-    if (n < 1) { return false; }
-    
-    // if the n'th barracks has been built
-    if (n <= barracks_tags.size()) {
-        const Unit *unit = Observation()->GetUnit(barracks_tags.at(n-1));
-
-        // when the Barracks has no add ons, it's add on tag is 0
-        if ( unit->is_alive && (unit->add_on_tag == 0) ) {
-            // attach a Reactor to this Barracks
-            Actions()->UnitCommand(unit, ABILITY_ID::BUILD_REACTOR_BARRACKS);
-            //std::cout << "DEBUG: Attach Reactor on the " << n << "'th Barracks\n";
-            return true;
-        }
-    }
-    return false;
+void Bot::TryBuildingBarracksReactor(const Unit *barracks) {
+    assert(barracks->unit_type == UNIT_TYPEID::TERRAN_BARRACKS);
+    Actions()->UnitCommand(barracks, ABILITY_ID::BUILD_REACTOR_BARRACKS);
 }
 
-bool Bot::TryBuildBarracksTechLab(size_t n) {
-    if (n < 1) { return false; }
-    
-    // if the n'th barracks has been built
-    if (n <= barracks_tags.size()) {
-        const Unit *unit = Observation()->GetUnit(barracks_tags.at(n-1));
-
-        // when the Barracks has no add ons, it's add on tag is 0
-        if ( unit->is_alive && (unit->add_on_tag == 0) ) {
-            // attach a Tech Lab to this 
-            Actions()->UnitCommand(unit, ABILITY_ID::BUILD_TECHLAB_BARRACKS);
-            //std::cout << "DEBUG: Attach Tech Lab on the " << n << "'th Barracks\n";
-            return true;
-        }
-    }
-    return false;
+void Bot::TryBuildingBarracksTechLab(const Unit *barracks) {
+    assert(barracks->unit_type == UNIT_TYPEID::TERRAN_BARRACKS);
+    Actions()->UnitCommand(barracks, ABILITY_ID::BUILD_TECHLAB_BARRACKS);
 }
 
-bool Bot::TryResearchBarracksStimpack(size_t n) {
-    if (n < 1) { return false; }
-    
-    // if the n'th barracks has been built
-    if (n <= barracks_tags.size()) {
-        const Unit *unit = Observation()->GetUnit(barracks_tags.at(n-1));
+void Bot::TryResearchingStimpack(const Unit *tech_lab) {
+    assert(tech_lab->unit_type == UNIT_TYPEID::TERRAN_BARRACKSTECHLAB);
 
-        // when the Barracks has no add ons, it's add on tag is 0
-        if ( unit->is_alive && (unit->add_on_tag != 0) ) {
-            // research a Stimpack on the Tech Lab of this Barracks - assuming that the add-on is a Tech Lab
-            // get the Tech Lab unit
-            const Unit *tech_lab_unit = Observation()->GetUnit(unit->add_on_tag);
-
-            // stimpack costs 100 minerals + 100 vespene
-            if (Observation()->GetMinerals() >= 100 && Observation()->GetVespene() >= 100) {
-                //std::cout << "DEBUG: Research Stimpack at the " << n << "'th Barracks\n";
-                Actions()->UnitCommand(tech_lab_unit, ABILITY_ID::RESEARCH_STIMPACK);
-                return true;
-            }
-            return false;
-        }
+    if (canAffordUpgrade(UPGRADE_ID::STIMPACK)) {
+        std::cout << "DEBUG: Researching Stimpack at a Barracks Tech Lab\n";
+        Actions()->UnitCommand(tech_lab, ABILITY_ID::RESEARCH_STIMPACK);
     }
-    return false;
 }
 
-bool Bot::TryStartMarineProd(size_t n, bool has_reactor) {
-    if (n < 1) { return false; }
+void Bot::TryResearchingCombatShield(const Unit *tech_lab) {
+    assert(tech_lab->unit_type == UNIT_TYPEID::TERRAN_BARRACKSTECHLAB);
 
-    // if the n'th barracks has been built
-    if (n <= barracks_tags.size()) {
-        const Unit *unit = Observation()->GetUnit(barracks_tags.at(n-1));
-        if ( unit->orders.size() == 0 ) {
-            // the barracks is currently idle - order marine production
-            Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
-            if (has_reactor) {
-                // can simultaneously produce two units
-                Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
-            }
-            //std::cout << "DEBUG: Barracks #" << n << " trains Marine\n";
-            return true;
-        }
+    if (canAffordUpgrade(UPGRADE_ID::COMBATSHIELD)) {
+        std::cout << "DEBUG: Researching Combat Shield at a Barracks Tech Lab\n";
+        Actions()->UnitCommand(tech_lab, ABILITY_ID::RESEARCH_COMBATSHIELD);
     }
-    return false;
+}
+
+void Bot::TryProducingMarine(const Unit *barracks) {
+   assert(barracks->unit_type == UNIT_TYPEID::TERRAN_BARRACKS);
+   Actions()->UnitCommand(barracks, ABILITY_ID::TRAIN_MARINE);
+}
+
+void Bot::TryProducingMarauder(const Unit *barracks) {
+    assert(barracks->unit_type == UNIT_TYPEID::TERRAN_BARRACKS);
+    Actions()->UnitCommand(barracks, ABILITY_ID::TRAIN_MARAUDER);
 }
 
 void Bot::BarracksHandler() {
     // BARRACKS INSTRUCTIONS
+    assert(barracks_tags.size() == barracks_states.size() && barracks_tags.size() == barracks_tech_lab_states.size());
+    const auto *observation = Observation();
 
-    // state machine for the first Barracks
-    std::string first_barracks = "first";
-    if (first_barracks_state == BarracksState::BUILD) {
-        // if a Barracks is not already being built
-        if (CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS) < 1) {
-            TryBuildBarracks(first_barracks);
-        } else {
-            ChangeFirstBarracksState();
-        }
-    }
-    else if (first_barracks_state == BarracksState::TECHLAB) {
-        if (CountUnitType(UNIT_TYPEID::TERRAN_BARRACKSTECHLAB) < 1) {
-            TryBuildBarracksTechLab(1);
-        } else {
-            ChangeFirstBarracksState();
-        }
-    } else if (first_barracks_state == BarracksState::STIMPACK) {
-        if (TryResearchBarracksStimpack(1)) {
-            ChangeFirstBarracksState();
-        }
-    } else if (first_barracks_state == BarracksState::MARINEPROD) {
-        TryStartMarineProd(1, false);
-    }
-    
-    // state machine for the second Barracks
-    std::string second_barracks = "second";
-    if (second_barracks_state == BarracksState::BUILD) {
-        // if the second Barracks is not already being built
-        if (CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS) < 2) {
-            TryBuildBarracks(second_barracks);
-        } else {
-            ChangeSecondBarracksState();
-        }
-    } else if (second_barracks_state == BarracksState::REACTOR) {
-        // the second Barracks is going to be the first Barracks with a Reactor
-        // this check makes sure that we don't order a Reactor while it is already under construction
-        if (CountUnitType(UNIT_TYPEID::TERRAN_BARRACKSREACTOR) < 1) {
-            // attaches Reactor to the second Barracks
-            TryBuildBarracksReactor(2);
-        } else {
-            ChangeSecondBarracksState();
-        }
-    } else if (second_barracks_state == BarracksState::MARINEPROD) {
-        // starts Marine production on the third Barracks
-        TryStartMarineProd(2, true);
+    // Try to build barracks if we have reached the supply threshold for the next barracks
+    size_t number_of_barracks = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
+    if (number_of_barracks < config.supplyToBuildBarracksAt.size()
+        && observation->GetFoodUsed() >= config.supplyToBuildBarracksAt[number_of_barracks]) {
+        TryBuildingBarracks();
     }
 
-    // state machine for the third Barracks
-    std::string third_barracks = "third";
-    
-    if (third_barracks_state == BarracksState::BUILD && barracks_tags.size()>=2) {
-        // if the third Barracks is not already being built
-        if (CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS) < 3) {        
-            TryBuildBarracks(third_barracks);
-        } else {
-            ChangeThirdBarracksState();
+    for (size_t i = 0; i < barracks_tags.size(); ++i) {
+        const auto *unit = observation->GetUnit(barracks_tags[i]);
+        const Unit* add_on = observation->GetUnit(unit->add_on_tag);
+        auto &state = barracks_states[i];
+
+        if (state == BarracksState::BUILDING) {
+            if (unit->IsBuildFinished()) {
+                state = i == 0 ? BarracksState::BUILDING_TECH_LAB : BarracksState::BUILDING_REACTOR;
+            }
+        } else if (state == BarracksState::BUILDING_TECH_LAB) {
+            if (add_on) {
+                state = BarracksState::PRODUCING_MARINES;
+            } else {
+                TryBuildingBarracksTechLab(unit);
+            }
+        } else if (state == BarracksState::BUILDING_REACTOR) {
+            if (add_on) {
+                state = BarracksState::PRODUCING_MARINES;
+            } else {
+                TryBuildingBarracksReactor(unit);
+            }
+        } else if (state == BarracksState::PRODUCING_MARINES) {
+            TryProducingMarine(unit);
+            if (add_on && add_on->unit_type == UNIT_TYPEID::TERRAN_BARRACKSTECHLAB) {
+                state = BarracksState::PRODUCING_MARAUDERS;
+            }
+        } else if (state == BarracksState::PRODUCING_MARAUDERS) {
+            TryProducingMarauder(unit);
         }
-    } else if (third_barracks_state == BarracksState::REACTOR) {
-        // the third Barracks is going to be the second Barracks with a Reactor
-        // this check makes sure that we don't order a Reactor while it is already under construction
-        if (CountUnitType(UNIT_TYPEID::TERRAN_BARRACKSREACTOR) < 2) {
-            // attaches Reactor to the third Barracks
-            TryBuildBarracksReactor(3);
+
+        if (add_on && add_on->unit_type == UNIT_TYPEID::TERRAN_BARRACKSTECHLAB)
+            BarracksTechLabHandler(add_on, barracks_tech_lab_states[i]);
+    }
+}
+
+void Bot::BarracksTechLabHandler(const Unit *tech_lab, BarracksTechLabState &state) {
+    assert(tech_lab->unit_type == UNIT_TYPEID::TERRAN_BARRACKSTECHLAB);
+
+    if (state == BarracksTechLabState::NONE) {
+        state = BarracksTechLabState::BUILDING;
+    } else if (state == BarracksTechLabState::BUILDING && tech_lab->IsBuildFinished()) {
+        state = BarracksTechLabState::RESEARCHING_STIMPACK;
+    } else if (state == BarracksTechLabState::RESEARCHING_STIMPACK) {
+        if (have_stimpack) {
+            state = BarracksTechLabState::RESEARCHING_COMBAT_SHIELD;
         } else {
-            ChangeThirdBarracksState();
+            TryResearchingStimpack(tech_lab);
         }
-    } else if (third_barracks_state == BarracksState::MARINEPROD) {
-        // starts Marine production on the third Barracks
-        TryStartMarineProd(3, true);
+    } else if (state == BarracksTechLabState::RESEARCHING_COMBAT_SHIELD) {
+        if (have_combat_shield) {
+            state = BarracksTechLabState::DONE;
+        } else {
+            TryResearchingCombatShield(tech_lab);
+        }
     }
 }

@@ -4,9 +4,7 @@ SupplyDepot:
     third: 28
     cont: 30
 Barracks:
-    first: 12
-    second: 19
-    third: 19
+    supplyToBuildAt: [12, 19, 19]
 Refinery:
     first: 13     # build the first refinery at supply level 16
 CommandCenter:
@@ -21,4 +19,5 @@ EngineeringBay:
     first: 22
 Medivac:
     maxUnits: 2   # maximum number of medivacs to have at a time
-    
+AttackTrigger:
+    timeSeconds: 540 # number of seconds of game time to trigger an attack at

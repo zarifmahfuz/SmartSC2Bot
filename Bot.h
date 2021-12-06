@@ -17,8 +17,11 @@ enum SupplyDepotState { FIRST, SECOND, THIRD, CONT };
 // states mapping the action we are trying to do with a Refinery
 enum RefineryState { REFINERY_FIRST, ASSIGN_WORKERS, REFINERY_IDLE };
 
-// states representing actions taken by the first, second and third Barracks
-enum BarracksState { BUILD, TECHLAB, REACTOR, STIMPACK, MARINEPROD };
+// states representing actions taken by Barracks
+enum class BarracksState { BUILDING, BUILDING_TECH_LAB, BUILDING_REACTOR, PRODUCING_MARINES, PRODUCING_MARAUDERS };
+
+// states representing actions taken by Barracks Tech Lab
+enum class BarracksTechLabState { NONE, BUILDING, RESEARCHING_STIMPACK, RESEARCHING_COMBAT_SHIELD, DONE };
 
 // states representing actions taken by the first Command Center
 
@@ -26,6 +29,9 @@ enum CommandCenterState { BUILDCC, PREUPGRADE_TRAINSCV, OC, POSTUPGRADE_TRAINSCV
 
 // states reprenting actions taken by the first Engineering Bay
 enum EBayState {EBAYBUILD, INFANTRYWEAPONSUPGRADELEVEL1};
+
+// number of seconds per game loop from Observation()->GetGameLoop()
+const float SECONDS_PER_GAME_LOOP = 1 / 22.4F;
 
 class Bot : public Agent {
 public:
@@ -44,6 +50,12 @@ public:
     // this will get called whenever a new unit finishes building
     virtual void OnBuildingConstructionComplete(const Unit *unit) final;
 
+    // called whenever an upgrade completes
+    virtual void OnUpgradeCompleted(UpgradeID) final;
+
+    // called when an enemy unit enters our vision from out of fog of war
+    virtual void OnUnitEnterVision(const Unit *) override;
+
     // counts the current number of units of the specified type
     size_t CountUnitType(UNIT_TYPEID unit_type);
 
@@ -61,6 +73,9 @@ public:
   
 private:
     BotConfig config;
+
+    // the location of each of the expansions
+    std::unique_ptr<std::vector<Point3D>> expansion_locations = nullptr;
 
     // centers of all clusters of mineral fields
     std::vector<Point3D> clusterCenters;
@@ -137,10 +152,6 @@ private:
     // Try to build a Medivac
     bool TryBuildMedivac();
 
-    // Try to research the Combat Shield upgrade on the Barracks' Tech Lab.
-    bool TryResearchCombatShield();
-
-    
 
     // ----------------- SUPPLY DEPOT ----------------
     // represents supply depots; index i represents (i+1)'th supply depot in the game
@@ -158,37 +169,42 @@ private:
 
 
     // ----------------- BARRACKS ----------------
-    // represents barracks; index i represents (i+1)'th barracks in the game
     std::vector<Tag> barracks_tags;
-    BarracksState first_barracks_state = BarracksState::BUILD;
-    BarracksState second_barracks_state = BarracksState::BUILD;
-    BarracksState third_barracks_state = BarracksState::BUILD;
+    std::vector<BarracksState> barracks_states;
+    std::vector<BarracksTechLabState> barracks_tech_lab_states;
 
-    // build the n'th Barracks; barracks_ = "first"/"second"/"third"
-    bool TryBuildBarracks(std::string &barracks_);
+    // If the stimpack upgrade has completed
+    bool have_stimpack = false;
+    // If the combat shield upgrade has completed
+    bool have_combat_shield = false;
 
-    // trys to attach a Reactor to the n'th Barracks
-    bool TryBuildBarracksReactor(size_t n);
+    // try building a Barracks
+    void TryBuildingBarracks();
+
+    // trys to attach a Reactor to a Barracks
+    void TryBuildingBarracksReactor(const Unit *barracks);
 
     // trys to attach a Tech Lab to the n'th Barracks
-    bool TryBuildBarracksTechLab(size_t n);
+    void TryBuildingBarracksTechLab(const Unit *barracks);
     
-    // trys to research Stimpack at the n'th Barracks - returns true if successful, false otherwise
-    bool TryResearchBarracksStimpack(size_t n);
+    // trys to research Stimpack at a Barracks Tech Lab
+    void TryResearchingStimpack(const Unit *tech_lab);
 
-    // starts Marine production on the n'th Barracks
-    // if Reactor is attached to a Barracks, it produces two units simultaneously
-    bool TryStartMarineProd(size_t n, bool has_reactor);
+    // trys to research Combat Shield at a Barracks Tech Lab
+    void TryResearchingCombatShield(const Unit *tech_lab);
+
+    // trys to produce a Marine at a Barracks
+    void TryProducingMarine(const Unit *barracks);
+
+    // Try to produce a Marauder at a Barracks
+    void TryProducingMarauder(const Unit *barracks);
 
     // handles the states and actions of all the Barracks in the game
     void BarracksHandler();
 
-    // changes states for the first Barracks
-    void ChangeFirstBarracksState();
-    // changes states for the second Barracks
-    void ChangeSecondBarracksState();
-    // changes states for the third Barracks
-    void ChangeThirdBarracksState();
+    // handles the state machine of a Barracks with Tech Lab
+    void BarracksTechLabHandler(const Unit *barracks, BarracksTechLabState &state);
+
 
     // ------------------------ COMMAND CENTER --------------------------
     // represents command centers; index i represents (i+1)'th command center in the game
@@ -232,6 +248,26 @@ private:
     bool TryInfantryWeaponsUpgrade(size_t n);
 
     void ChangeFirstEbayState();
+
+    // ------------------------ INFANTRY UNITS ----------------------
+    // Location of the enemy base.
+    std::unique_ptr<Point2D> enemy_base_location = nullptr;
+
+    // true iff infantry units should attack enemy units when they idle, false otherwise.
+    bool units_should_attack = false;
+
+    // Checks if an attack should be made and performs an attack if so.
+    void AttackHandler();
+
+    // Command a unit to perform an attack on the enemy.
+    void CommandToAttack(const Unit *attacking_unit);
+
+    // -------------------------- SCOUTING --------------------------
+    // The tag of the scouting SCV, or 0 if there is none.
+    Tag scouting_scv = 0;
+
+    // Send a unit to scout for enemy buildings
+    void SendScout();
 };
 
 #endif //BASICSC2BOT_BOT_H
