@@ -66,13 +66,14 @@ void Bot::BarracksHandler() {
 
     for (size_t i = 0; i < barracks_tags.size(); ++i) {
         const auto *unit = observation->GetUnit(barracks_tags[i]);
-        const Unit* add_on = observation->GetUnit(unit->add_on_tag);
-        auto &state = barracks_states[i];
 
         if (unit == nullptr) {
             std::cout << "DEBUG: Barracks i=" << i << " unit is a nullptr\n";
             continue;
         }
+        const Unit* add_on = observation->GetUnit(unit->add_on_tag);
+        auto &state = barracks_states[i];
+        
 
         if (state == BarracksState::BUILDING) {
             if (unit->IsBuildFinished()) {
