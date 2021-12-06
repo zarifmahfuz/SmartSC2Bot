@@ -74,6 +74,13 @@ public:
 private:
     BotConfig config;
 
+    double num_game_loops_elapsed = 0;
+    double const num_game_loops_per_second = 22.4;
+
+    std::string ai_difficulty;
+    std::string map_name;
+
+
     // the location of each of the expansions
     std::unique_ptr<std::vector<Point3D>> expansion_locations = nullptr;
 

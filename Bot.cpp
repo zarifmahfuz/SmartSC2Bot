@@ -17,6 +17,74 @@ void Bot::OnGameStart() {
     expansion_locations = std::make_unique<std::vector<Point3D>>(
             std::move(search::CalculateExpansionLocations(observation, Query())));
 
+    GameInfo gameInfo = Observation()->GetGameInfo();
+    map_name = gameInfo.map_name;
+
+    // AI Race
+    switch (gameInfo.player_info[1].race_requested) {
+        case Terran: {
+            std::cout << "TERRAN" << std::endl;
+            break;
+        }
+        case Zerg: {
+            std::cout << "ZERG" << std::endl;
+            break;
+        }
+        case Protoss: {
+            std::cout << "PROTOSS" << std::endl;
+            break;
+        }
+        case Random: {
+            std::cout << "RANDOM" << std::endl;
+            break;
+        }
+
+    }
+
+    // AI difficulty
+    switch (gameInfo.player_info[1].difficulty) {
+        case VeryEasy: {
+            ai_difficulty = "VERY EASY";
+            break;
+        }
+        case Easy: {
+            ai_difficulty = "EASY";
+            break;
+        }
+        case Medium: {
+            ai_difficulty = "MEDIUM";
+            break;
+        }
+        case MediumHard: {
+            ai_difficulty = "MEDIUM HARD";
+            break;
+        }
+        case Hard: {
+            ai_difficulty = "HARD";
+            break;
+        }
+        case HardVeryHard: {
+            ai_difficulty = "HARD VERY HARD";
+            break;
+        }
+        case VeryHard: {
+            ai_difficulty = "VERY HARD";
+            break;
+        }
+        case CheatVision: {
+            ai_difficulty = "CHEAT VISION";
+            break;
+        }
+        case CheatMoney: {
+            ai_difficulty = "CHEAT MONEY";
+            break;
+        }
+        case CheatInsane: {
+            ai_difficulty = "CHEAT INSANE";
+            break;
+        }
+    }
+
     Units units = observation->GetUnits(Unit::Alliance::Self,  IsUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER));
     // get the tag of the command center the game starts with
     command_center_tags.push_back(units[0]->tag);
@@ -29,9 +97,58 @@ void Bot::OnGameStart() {
 }
 
 void Bot::OnGameEnd(){
+
+     std::vector<PlayerResult> results = Observation()->GetResults();
+
+    // print map name
+    std::cout << map_name << std::endl;
+
+    // print results
+    if (!results.empty()) {
+        std::cout << "RESULTS: " << std::endl;
+
+        switch (results[0].result) {
+
+            case Win: {
+                std::cout << "WIN" << std::endl;
+                break;
+            }
+
+            case Loss: {
+                std::cout << "LOSS" << std::endl;
+                break;
+            }
+
+            case Tie: {
+                std::cout << "TIE" << std::endl;
+                break;
+            }
+            case Undecided: {
+                std::cout << "UNDECIDED" << std::endl;
+                break;
+            }
+
+            default: {
+                std::cout << "DEFAULT" << std::endl;
+                break;
+            }
+
+
+        }
+
+    }
+
+    // print AI difficulty
+    std::cout << ai_difficulty << std::endl;
+
+    // print number of seconds of game time elapsed
+    std::cout << num_game_loops_elapsed/num_game_loops_per_second << std::endl;
 }
 
 void Bot::OnStep() {
+
+    ++num_game_loops_elapsed;
+    
     SupplyDepotHandler();
     
     CommandCenterHandler();
