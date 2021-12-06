@@ -6,21 +6,21 @@ def main():
 
     try:
         num_times_to_run_bot = int(arg[1])
-        bot_arguements = " ".join(arg[2:])
+        bot_arguments = " ".join(arg[2:])
 
     except IndexError:
         print("Not enough arguments")
         sys.exit()
     
-    run_bot(num_times_to_run_bot, bot_arguements)
+    run_bot(num_times_to_run_bot, bot_arguments)
 
-def run_bot(n, bot_arguements):
+def run_bot(n, bot_arguments):
     """
     Runs the Bot n times and records the output
 
     Parameters:
         n: number of times the Bot needs to be run
-        bot_arguements: the CLI arguements that will run the bot
+        bot_arguments: the CLI arguements that will run the bot
     """
 
     num_wins = 0
@@ -33,7 +33,7 @@ def run_bot(n, bot_arguements):
 
     for i in range(n):
         try:
-            out = check_output(bot_arguements, shell=True).decode().splitlines()
+            out = check_output(bot_arguments, shell=True).decode().splitlines()
         except Exception:
             print("GAME", i + 1)
             print("--------------------------------")
