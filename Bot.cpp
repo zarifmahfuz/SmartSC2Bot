@@ -734,7 +734,15 @@ void Bot::AttackHandler() {
 
 void Bot::CommandToAttack(const Unit *attacking_unit) {
     const auto *observation = Observation();
-    auto enemy_units = observation->GetUnits(Unit::Alliance::Enemy);
+
+    // Mark enemy base as visited once an attacking unit is close enough to it
+    if (enemy_base_location
+        && !visited_enemy_base
+        && DistanceSquared2D(attacking_unit->pos, *enemy_base_location) <= 5 * 5) {
+        visited_enemy_base = true;
+    }
+
+    auto enemy_units = observation->GetUnits(Unit::Alliance::Enemy, IsVisible());
     if (!enemy_units.empty()) {
         // Sort enemy units by distance to attacking unit
         std::sort(enemy_units.begin(), enemy_units.end(), [attacking_unit](const auto &a, const auto &b) {
@@ -762,10 +770,10 @@ void Bot::CommandToAttack(const Unit *attacking_unit) {
                 }
             }
         }
-    } else if (enemy_base_location) {
-        // Otherwise, attack the enemy base if we know where it is
+    } else if (enemy_base_location && !visited_enemy_base) {
+        // Otherwise, attack the enemy base if we know where it is and have not visited it yet
         Actions()->UnitCommand(attacking_unit, ABILITY_ID::ATTACK_ATTACK, *enemy_base_location);
-    } else if (expansion_locations) {
+    } else if (expansion_locations && attacking_unit->orders.empty()) {
         // Otherwise, explore the map by visiting all expansions, starting with the closest
         auto sorted_expansions = *expansion_locations;
         std::sort(
