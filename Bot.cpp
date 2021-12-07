@@ -742,7 +742,7 @@ void Bot::CommandToAttack(const Unit *attacking_unit) {
         visited_enemy_base = true;
     }
 
-    auto enemy_units = observation->GetUnits(Unit::Alliance::Enemy);
+    auto enemy_units = observation->GetUnits(Unit::Alliance::Enemy, IsVisible());
     if (!enemy_units.empty()) {
         // Sort enemy units by distance to attacking unit
         std::sort(enemy_units.begin(), enemy_units.end(), [attacking_unit](const auto &a, const auto &b) {
