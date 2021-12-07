@@ -239,6 +239,9 @@ private:
     // Location of the enemy base.
     std::unique_ptr<Point2D> enemy_base_location = nullptr;
 
+    // True iff we have visited the enemy base to attack it.
+    bool visited_enemy_base = false;
+
     // true iff infantry units should attack enemy units when they idle, false otherwise.
     bool units_should_attack = false;
 
