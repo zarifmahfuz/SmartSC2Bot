@@ -801,8 +801,10 @@ void Bot::OnUnitEnterVision(const Unit *unit) {
 
     // Order the scouting SCV to return to our command center and make it no longer the scouting SCV
     if (scouting_scv != 0) {
-        auto cc_pos = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER))[0]->pos;
-        Actions()->UnitCommand(observation->GetUnit(scouting_scv), ABILITY_ID::MOVE_MOVE, cc_pos, false);
+        const auto *cc = observation->GetUnit(command_center_tags[0]);
+        if (cc) {
+            Actions()->UnitCommand(observation->GetUnit(scouting_scv), ABILITY_ID::MOVE_MOVE, cc->pos, false);
+        }
         scouting_scv = 0;
     }
 
