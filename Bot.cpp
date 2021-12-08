@@ -799,10 +799,23 @@ void Bot::CommandToAttack(const Unit *attacking_unit, const Units &enemy_units) 
 }
 
 void Bot::CommandToSearchForEnemies(const Unit *unit) {
+    // Mark enemy base as visited once an attacking unit is close enough to it
+    if (enemy_base_location
+        && !visited_enemy_base
+        && DistanceSquared2D(unit->pos, *enemy_base_location) <= 5 * 5) {
+        visited_enemy_base = true;
+    }
+
+    // If the enemy base has not been visited yet, try attacking it
+    if (enemy_base_location && !visited_enemy_base) {
+        Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, *enemy_base_location);
+        return;
+    }
+
     if (!expansion_locations)
         return;
 
-    // Queue the unit to visit each expansion location in the order of distance
+    // Otherwise, queue the unit to visit each expansion location in the order of distance
     auto sorted_expansions = *expansion_locations;
     std::sort(
             sorted_expansions.begin(), sorted_expansions.end(), [&](const auto &a, const auto &b) {
@@ -858,9 +871,8 @@ void Bot::DefendHandler() {
 }
 
 void Bot::OnUnitEnterVision(const Unit *unit) {
-    if (found_enemy)
+    if (enemy_base_location != nullptr || !unit->is_building)
         return;
-    found_enemy = true;
 
     const auto *observation = Observation();
     const auto enemy_start_locations = observation->GetGameInfo().enemy_start_locations;
@@ -875,6 +887,9 @@ void Bot::OnUnitEnterVision(const Unit *unit) {
                                                                    DistanceSquared2D(b, building_pos);
                                                         });
 
+    // Set the closest enemy start location as the estimated enemy base location
+    enemy_base_location = std::make_unique<Point2D>(*closest_enemy_base_it);
+
     // Order the scouting SCV to return to our command center and make it no longer the scouting SCV
     if (scouting_scv != 0 && !scouting_scv_returning) {
         const auto *scv = observation->GetUnit(scouting_scv);
@@ -886,6 +901,7 @@ void Bot::OnUnitEnterVision(const Unit *unit) {
     }
 
     std::cout << "DEBUG: Found enemy " << unit->unit_type.to_string() << " at " << building_pos.x << ',' << building_pos.y << '\n';
+    std::cout << "DEBUG: Estimating that enemy base location is at " << enemy_base_location->x << ',' << enemy_base_location->y << '\n';
 }
 
 void Bot::SendScout() {

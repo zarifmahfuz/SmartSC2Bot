@@ -239,11 +239,11 @@ private:
     // true iff army units should attack enemy units when they idle, false otherwise.
     bool units_should_attack = false;
 
-    // true iff we have found an enemy unit.
-    bool found_enemy = false;
-
     // true iff we were just defending our base against at least one enemy.
     bool just_defended = false;
+
+    // True iff we have visited the enemy base to attack it.
+    bool visited_enemy_base = false;
 
     // Get a list of all of our army units.
     Units GetArmyUnits();
@@ -266,6 +266,9 @@ private:
 
     // True iff the scouting SCV is currently returning to the base. Undefined if there is no scouting SCV.
     bool scouting_scv_returning = false;
+
+    // Location of the enemy base. nullptr if we haven't found it.
+    std::unique_ptr<Point2D> enemy_base_location = nullptr;
 
     // Send a unit to scout for enemy buildings
     void SendScout();
