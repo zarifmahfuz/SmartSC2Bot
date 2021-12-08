@@ -288,6 +288,9 @@ const Unit *Bot::FindNearestRequestedUnit(const Point2D &start, Unit::Alliance a
 
     // iterate over all the units and find the closest unit matching the unit type
     for (const auto &u: units) {
+        if (u == nullptr) {
+            continue;
+        }
         if (u->unit_type == unit_type) {
             float d = DistanceSquared2D(u->pos, start);
             if (d < distance) {
@@ -433,6 +436,9 @@ Point2D Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radi
             // place barracks away from each other to allow for attaching techlab/reactor without conflict
             if (ability_type_for_structure==ABILITY_ID::BUILD_BARRACKS && !barracks_tags.empty()){
                 for (const Tag &t: barracks_tags){
+                    if (Observation()->GetUnit(t) == nullptr){
+                        continue;
+                    }
                     Point2D barracks_pos = Observation()->GetUnit(t)->pos;
                     if (Distance2D(barracks_pos, build_location) < (buildInfo->unit_radius) *2){
                         placeable = false;
@@ -546,6 +552,9 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
                 BuildMap[n] = BuildBarracksInfo();
             }
             radius = BuildMap[n].previous_radius;
+            if (observation()->GetUnit(command_center_tags[0]) == nullptr) {
+                break;
+            }
             center_pos = Observation()->GetUnit(command_center_tags[0])->pos;
             build_location = chooseNearbyBuildLocation(center_pos,radius,ability_type_for_structure,n);
             
@@ -554,6 +563,9 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
                             build_location);
             break;
         default:
+            if (observation()->GetUnit(command_center_tags[0]) == nullptr) {
+                break;
+            }
             center_pos = Observation()->GetUnit(command_center_tags[0])->pos;
             float rx;
             float ry;
@@ -579,6 +591,9 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
                 
                 // place buildings away from barracks
                 for (const Tag &t: barracks_tags){
+                    if ( Observation()->GetUnit(t) == nullptr) {
+                        continue;
+                    }
                     Point2D barracks_pos = Observation()->GetUnit(t)->pos;
                     if (Distance2D(barracks_pos, build_location) < 6){
                         placable = false;
@@ -696,8 +711,10 @@ void Bot::FindBaseLocations(){
         skip = false;
     }
 
-
-    Point2D temp = Observation()->GetUnit(command_center_tags[0])->pos;
+    if (Observation()->GetUnit(command_center_tags[0]) != nullptr) {
+        Point2D temp = Observation()->GetUnit(command_center_tags[0])->pos;
+    }
+    
     //std::cout << "distance between starting center and field:" << dist(computeClusterCenter(clusters[0]),temp)<< std::endl;
 
     Point3D center;
