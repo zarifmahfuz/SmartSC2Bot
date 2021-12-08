@@ -229,6 +229,15 @@ void Bot::OnUnitCreated(const Unit *unit) {
         case UNIT_TYPEID::TERRAN_BARRACKSREACTOR:
             std::cout << "DEBUG: Started building a Barracks Reactor\n";
             break;
+        case UNIT_TYPEID::TERRAN_MARINE:
+        case UNIT_TYPEID::TERRAN_MARAUDER: {
+            // Move the newly-created marine or marauder to the rally point, which is the location of the command center
+            const auto *cc = Observation()->GetUnit(command_center_tags[0]);
+            if (cc) {
+                Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, cc->pos);
+            }
+            break;
+        }
         default: {
             break;
         }
