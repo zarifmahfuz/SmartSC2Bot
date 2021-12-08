@@ -8,6 +8,7 @@
 class BotConfig {
 public:
     static BotConfig from_file(const std::string &filename);
+
     const int secondCommandCenter;
     const int engineeringBayMinSupply;
     const int engineeringBayMaxSupply;
@@ -32,7 +33,7 @@ public:
     const int maxSimulScouts;
 
 private:
-    explicit BotConfig(const YAML::Node&);
+    explicit BotConfig(const YAML::Node &);
 };
 
 #endif //BASICSC2BOT_BOTCONFIG_H

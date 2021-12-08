@@ -8,14 +8,11 @@ void Bot::EBayHandler() {
         // if a E-Bay is not already being built
         if (CountUnitType(UNIT_TYPEID::TERRAN_ENGINEERINGBAY) == 0) {
             TryBuildEBay(first_ebay);
-        }
-        else {
+        } else {
             ChangeFirstEbayState();
         }
 
-    }
-
-    else if (first_e_bay_state == INFANTRYWEAPONSUPGRADELEVEL1) {
+    } else if (first_e_bay_state == INFANTRYWEAPONSUPGRADELEVEL1) {
         TryInfantryWeaponsUpgrade(1); // use the first E-Bay
     }
 }

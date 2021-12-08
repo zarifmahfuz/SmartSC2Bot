@@ -43,8 +43,8 @@ void Bot::TryResearchingCombatShield(const Unit *tech_lab) {
 }
 
 void Bot::TryProducingMarine(const Unit *barracks) {
-   assert(barracks->unit_type == UNIT_TYPEID::TERRAN_BARRACKS);
-   Actions()->UnitCommand(barracks, ABILITY_ID::TRAIN_MARINE);
+    assert(barracks->unit_type == UNIT_TYPEID::TERRAN_BARRACKS);
+    Actions()->UnitCommand(barracks, ABILITY_ID::TRAIN_MARINE);
 }
 
 void Bot::TryProducingMarauder(const Unit *barracks) {
@@ -71,9 +71,9 @@ void Bot::BarracksHandler() {
             std::cout << "DEBUG: Barracks i=" << i << " unit is a nullptr\n";
             continue;
         }
-        const Unit* add_on = observation->GetUnit(unit->add_on_tag);
+        const Unit *add_on = observation->GetUnit(unit->add_on_tag);
         auto &state = barracks_states[i];
-        
+
 
         if (state == BarracksState::BUILDING) {
             if (unit->IsBuildFinished()) {

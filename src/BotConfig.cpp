@@ -12,7 +12,7 @@ BotConfig BotConfig::from_file(const std::string &filename) {
 }
 
 BotConfig::BotConfig(const YAML::Node &node)
-        : secondCommandCenter( node["CommandCenter"]["second"].as<int>() ),
+        : secondCommandCenter(node["CommandCenter"]["second"].as<int>()),
           engineeringBayMinSupply(node["EngineeringBay"]["minSupply"].as<int>()),
           engineeringBayMaxSupply(node["EngineeringBay"]["maxSupply"].as<int>()),
           engineeringBayFirst(node["EngineeringBay"]["first"].as<int>()),
@@ -24,9 +24,9 @@ BotConfig::BotConfig(const YAML::Node &node)
           defendRadius(node["Defend"]["radius"].as<float>()),
           stimpackMinHealth(node["Stimpack"]["minHealth"].as<float>()),
           stimpackMaxDistanceToEnemy(node["Stimpack"]["maxDistanceToEnemy"].as<float>()) {
-    supply_depot.insert( std::make_pair<std::string, int>("first", node["SupplyDepot"]["first"].as<int>()) );
-    supply_depot.insert( std::make_pair<std::string, int>("second", node["SupplyDepot"]["second"].as<int>()) );
-    supply_depot.insert( std::make_pair<std::string, int>("third", node["SupplyDepot"]["third"].as<int>()) );
-    supply_depot.insert( std::make_pair<std::string, int>("cont", node["SupplyDepot"]["cont"].as<int>()) );
-    refinery.insert( std::make_pair<std::string, int>("first", node["Refinery"]["first"].as<int>()) );
+    supply_depot.insert(std::make_pair<std::string, int>("first", node["SupplyDepot"]["first"].as<int>()));
+    supply_depot.insert(std::make_pair<std::string, int>("second", node["SupplyDepot"]["second"].as<int>()));
+    supply_depot.insert(std::make_pair<std::string, int>("third", node["SupplyDepot"]["third"].as<int>()));
+    supply_depot.insert(std::make_pair<std::string, int>("cont", node["SupplyDepot"]["cont"].as<int>()));
+    refinery.insert(std::make_pair<std::string, int>("first", node["Refinery"]["first"].as<int>()));
 }
