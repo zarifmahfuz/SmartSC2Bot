@@ -725,14 +725,27 @@ void Bot::AttackHandler() {
 
     const auto infantry_units = observation->GetUnits(
             Unit::Alliance::Self, IsUnits({UNIT_TYPEID::TERRAN_MARINE, UNIT_TYPEID::TERRAN_MARAUDER}));
+
+    // Get enemy units that are currently visible or were seen before
+    auto enemy_units = observation->GetUnits(Unit::Alliance::Enemy, [](const auto &unit) {
+        return unit.display_type == Unit::DisplayType::Visible || unit.display_type == Unit::DisplayType::Snapshot;
+    });
+
     for (const auto *unit : infantry_units) {
-        if (unit->orders.empty()) {
-            CommandToAttack(unit);
-        }
+        CommandToAttack(unit, enemy_units);
     }
 }
 
-void Bot::CommandToAttack(const Unit *attacking_unit) {
+void Bot::CommandToAttack(const Unit *attacking_unit, const Units &enemy_units) {
+    // No need to command again if the unit is currently attacking
+    if (!attacking_unit->orders.empty()) {
+        const auto &current_order = attacking_unit->orders.front();
+        if (current_order.ability_id == ABILITY_ID::ATTACK_ATTACK ||
+            current_order.ability_id == ABILITY_ID::ATTACK) {
+            return;
+        }
+    }
+
     const auto *observation = Observation();
 
     // Mark enemy base as visited once an attacking unit is close enough to it
@@ -742,15 +755,14 @@ void Bot::CommandToAttack(const Unit *attacking_unit) {
         visited_enemy_base = true;
     }
 
-    auto enemy_units = observation->GetUnits(Unit::Alliance::Enemy, IsVisible());
     if (!enemy_units.empty()) {
-        // Sort enemy units by distance to attacking unit
-        std::sort(enemy_units.begin(), enemy_units.end(), [attacking_unit](const auto &a, const auto &b) {
-            return DistanceSquared3D(attacking_unit->pos, a->pos) < DistanceSquared3D(attacking_unit->pos, b->pos);
-        });
-
         // Attack the closest enemy unit
-        const auto *unit_to_attack = enemy_units.front();
+        const auto *unit_to_attack = *std::min_element(enemy_units.begin(), enemy_units.end(),
+                                                       [attacking_unit](const auto &a, const auto &b) {
+                                                           return DistanceSquared3D(attacking_unit->pos, a->pos) <
+                                                                  DistanceSquared3D(attacking_unit->pos, b->pos);
+                                                       });
+
         if (unit_to_attack->unit_type == UNIT_TYPEID::ZERG_CHANGELINGMARINE ||
             unit_to_attack->unit_type == UNIT_TYPEID::ZERG_CHANGELINGMARINESHIELD) {
             Actions()->UnitCommand(attacking_unit, ABILITY_ID::ATTACK, unit_to_attack);

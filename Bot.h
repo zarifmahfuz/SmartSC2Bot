@@ -249,7 +249,7 @@ private:
     void AttackHandler();
 
     // Command a unit to perform an attack on the enemy.
-    void CommandToAttack(const Unit *attacking_unit);
+    void CommandToAttack(const Unit *attacking_unit, const Units &enemy_units);
 
     // -------------------------- SCOUTING --------------------------
     // The tag of the scouting SCV, or 0 if there is none.
