@@ -276,7 +276,7 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
 void Bot::OnUpgradeCompleted(UpgradeID upgradeId) {
     if (upgradeId == UPGRADE_ID::STIMPACK)
         have_stimpack = true;
-    else if (upgradeId == UPGRADE_ID::COMBATSHIELD)
+    else if (upgradeId == UPGRADE_ID::SHIELDWALL)
         have_combat_shield = true;
 }
 
