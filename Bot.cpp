@@ -777,7 +777,8 @@ void Bot::CommandToAttack(const Unit *attacking_unit, const Units &enemy_units) 
                                                               DistanceSquared3D(attacking_unit->pos, b->pos);
                                                    });
 
-    if (have_stimpack && attacking_unit->health >= attacking_unit->health_max * config.stimpackMinHealth &&
+    if (have_stimpack && units_should_attack &&
+        attacking_unit->health >= attacking_unit->health_max * config.stimpackMinHealth &&
         DistanceSquared3D(attacking_unit->pos, unit_to_attack->pos) <=
         config.stimpackMaxDistanceToEnemy * config.stimpackMaxDistanceToEnemy) {
         // Apply Stimpack to the attacking unit
