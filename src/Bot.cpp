@@ -811,9 +811,9 @@ void Bot::CommandToSearchForEnemies(const Unit *unit) {
         visited_enemy_base = true;
     }
 
-    // If the enemy base has not been visited yet, try attacking it
+    // If the enemy base has not been visited yet, try moving to it
     if (enemy_base_location && !visited_enemy_base) {
-        Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, *enemy_base_location);
+        Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, *enemy_base_location);
         return;
     }
 
@@ -828,7 +828,7 @@ void Bot::CommandToSearchForEnemies(const Unit *unit) {
                        DistanceSquared3D(unit->pos, b);
             });
     for (const auto &loc: sorted_expansions) {
-        Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, loc, true);
+        Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, loc, true);
     }
 }
 
