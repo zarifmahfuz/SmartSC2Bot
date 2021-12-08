@@ -778,9 +778,9 @@ void Bot::CommandToAttack(const Unit *attacking_unit, const Units &enemy_units) 
                                                    });
 
     if (have_stimpack && units_should_attack &&
-        attacking_unit->health >= attacking_unit->health_max * config.stimpackMinHealth &&
+        attacking_unit->health >= attacking_unit->health_max * config.stimpackMinHealth /* &&
         DistanceSquared3D(attacking_unit->pos, unit_to_attack->pos) <=
-        config.stimpackMaxDistanceToEnemy * config.stimpackMaxDistanceToEnemy) {
+        config.stimpackMaxDistanceToEnemy * config.stimpackMaxDistanceToEnemy */) {
         // Apply Stimpack to the attacking unit
         if (attacking_unit->unit_type == UNIT_TYPEID::TERRAN_MARINE) {
             Actions()->UnitCommand(attacking_unit, ABILITY_ID::EFFECT_STIM_MARINE);
@@ -823,7 +823,7 @@ void Bot::CommandToSearchForEnemies(const Unit *unit) {
                        DistanceSquared3D(unit->pos, b);
             });
     for (const auto &loc : sorted_expansions) {
-        Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, loc, true);
+        Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, loc, true);
     }
 }
 
