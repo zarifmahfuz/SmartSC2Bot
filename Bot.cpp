@@ -552,7 +552,7 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
                 BuildMap[n] = BuildBarracksInfo();
             }
             radius = BuildMap[n].previous_radius;
-            if (observation()->GetUnit(command_center_tags[0]) == nullptr) {
+            if (Observation()->GetUnit(command_center_tags[0]) == nullptr) {
                 break;
             }
             center_pos = Observation()->GetUnit(command_center_tags[0])->pos;
@@ -563,7 +563,7 @@ bool Bot::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID u
                             build_location);
             break;
         default:
-            if (observation()->GetUnit(command_center_tags[0]) == nullptr) {
+            if (Observation()->GetUnit(command_center_tags[0]) == nullptr) {
                 break;
             }
             center_pos = Observation()->GetUnit(command_center_tags[0])->pos;
