@@ -219,16 +219,16 @@ void Bot::OnUnitCreated(const Unit *unit) {
             break;
         }
         case UNIT_TYPEID::TERRAN_BARRACKS:
-            std::cout << "DEBUG: Started building a Barracks (i=" << barracks_tags.size() << ")\n";
+            // std::cout << "DEBUG: Started building a Barracks (i=" << barracks_tags.size() << ")\n";
             barracks_tags.push_back(unit->tag);
             barracks_states.push_back(BarracksState::BUILDING);
             barracks_tech_lab_states.push_back(BarracksTechLabState::NONE);
             break;
         case UNIT_TYPEID::TERRAN_BARRACKSTECHLAB:
-            std::cout << "DEBUG: Started building a Barracks Tech Lab\n";
+            // std::cout << "DEBUG: Started building a Barracks Tech Lab\n";
             break;
         case UNIT_TYPEID::TERRAN_BARRACKSREACTOR:
-            std::cout << "DEBUG: Started building a Barracks Reactor\n";
+            // std::cout << "DEBUG: Started building a Barracks Reactor\n";
             break;
         case UNIT_TYPEID::TERRAN_MARINE:
         case UNIT_TYPEID::TERRAN_MARAUDER: {
@@ -921,7 +921,7 @@ void Bot::SendScout() {
 
     const auto *scv = scvs.front();
     scouting_scv = scv->tag;
-    std::cout << "DEBUG: Sending SCV " << scouting_scv << " to scout\n";
+    // std::cout << "DEBUG: Sending SCV " << scouting_scv << " to scout\n";
 
     // Get all possible enemy start locations
     auto enemy_start_locations = observation->GetGameInfo().enemy_start_locations;

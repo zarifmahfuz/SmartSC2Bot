@@ -28,7 +28,7 @@ void Bot::TryResearchingStimpack(const Unit *tech_lab) {
     assert(tech_lab->unit_type == UNIT_TYPEID::TERRAN_BARRACKSTECHLAB);
 
     if (canAffordUpgrade(UPGRADE_ID::STIMPACK)) {
-        std::cout << "DEBUG: Researching Stimpack at a Barracks Tech Lab\n";
+        // std::cout << "DEBUG: Researching Stimpack at a Barracks Tech Lab\n";
         Actions()->UnitCommand(tech_lab, ABILITY_ID::RESEARCH_STIMPACK);
     }
 }
@@ -37,7 +37,7 @@ void Bot::TryResearchingCombatShield(const Unit *tech_lab) {
     assert(tech_lab->unit_type == UNIT_TYPEID::TERRAN_BARRACKSTECHLAB);
 
     if (canAffordUpgrade(UPGRADE_ID::COMBATSHIELD)) {
-        std::cout << "DEBUG: Researching Combat Shield at a Barracks Tech Lab\n";
+        // std::cout << "DEBUG: Researching Combat Shield at a Barracks Tech Lab\n";
         Actions()->UnitCommand(tech_lab, ABILITY_ID::RESEARCH_COMBATSHIELD);
     }
 }

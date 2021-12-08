@@ -57,7 +57,7 @@ bool Bot::TryBuildRefinery(std::string &refinery_) {
         if (!vespene_geyser) { return false; }
 
         if (canAffordUnit(UNIT_TYPEID::TERRAN_REFINERY)) {
-            std::cout << "DEBUG: Build " << refinery_ << " Refinery\n";
+            // std::cout << "DEBUG: Build " << refinery_ << " Refinery\n";
             // issue a command to the selected unit
             Actions()->UnitCommand(builder_unit, ABILITY_ID::BUILD_REFINERY, vespene_geyser);
             return true;
