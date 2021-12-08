@@ -28,18 +28,6 @@ void Bot::ChangeCCState(Tag cc) {
     }
 }
 
-bool Bot::TryBuildCommandCenter() {
-    const ObservationInterface *observation = Observation();
-    bool build = false;
-
-    // build second command center at supply 19 (currently only builds 1 command center)
-    if (canAffordUnit(UNIT_TYPEID::TERRAN_COMMANDCENTER)) {
-        build = true;
-        std::cout << "DEBUG: Build second command center\n";
-    }
-    return (build == true) ? (TryBuildStructure(ABILITY_ID::BUILD_COMMANDCENTER)) : false;
-}
-
 bool Bot::TryUpgradeToOC(size_t n) {
     if (n < 1) {
         return false;
@@ -88,11 +76,6 @@ void Bot::CommandCenterHandler() {
         return;
     }
 
-    // second command center doesn't need to be built for now
-    // if (Observation()->GetFoodUsed() >= config.secondCommandCenter) {
-    //                 TryBuildCommandCenter();     
-    // }
-
     // Using a loop to manage the states of all command centers
     // This makes it easy to add more command centers in the future
     int n = 0;
@@ -133,7 +116,7 @@ void Bot::CommandCenterHandler() {
             }
             case CommandCenterState::POSTUPGRADE_TRAINSCV: {
                 bool train_scv_cond = cc_unit->orders.size() == 0 && canAffordUnit(UNIT_TYPEID::TERRAN_SCV)
-                                      && CountUnitType(UNIT_TYPEID::TERRAN_SCV) < maxSCVs(config.maxSimulScouts);;
+                                      && CountUnitType(UNIT_TYPEID::TERRAN_SCV) < maxSCVs(config.maxSimulScouts);
                 if (train_scv_cond) {
                     Actions()->UnitCommand(cc_unit, ABILITY_ID::TRAIN_SCV);
                 }

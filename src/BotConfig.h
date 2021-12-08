@@ -9,16 +9,11 @@ class BotConfig {
 public:
     static BotConfig from_file(const std::string &filename);
 
-    const int secondCommandCenter;
-    const int engineeringBayMinSupply;
-    const int engineeringBayMaxSupply;
     const int engineeringBayFirst;
-    const int maxMedivacs;
     const int attackTriggerTimeSeconds;
     const int attackTriggerArmyUnits;
     const float defendRadius;
     const float stimpackMinHealth;
-    const float stimpackMaxDistanceToEnemy;
 
     // supply levels to build each barracks at
     const std::vector<int> supplyToBuildBarracksAt;

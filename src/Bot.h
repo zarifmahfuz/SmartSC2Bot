@@ -81,8 +81,6 @@ public:
     bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::TERRAN_SCV,
                            bool simult = false, std::string n = " ");
 
-    bool TryBuildCommandCenter();
-
     // issues a command to n number of SCVs - returns true if the command was successful, false otherwise
     bool CommandSCVs(int n, const Unit *target, ABILITY_ID ability = ABILITY_ID::SMART);
 
@@ -103,7 +101,7 @@ private:
     std::vector<Point3D> clusterCenters;
 
     // number of mineral field clusters
-    int numClusters;
+    int numClusters = 0;
 
     // struct to store info related to building command centers in the correct location
     struct BuildCommandInfo : public BuildInfo {
@@ -140,9 +138,6 @@ private:
     chooseNearbyBuildLocation(const Point3D &center, const double &radius, ABILITY_ID ability_type_for_structure,
                               std::string n = " ");
 
-    // find nearby ramp location
-    void findNearbyRamp();
-
     // convert degree to radian
     double Convert(double degree);
 
@@ -157,9 +152,6 @@ private:
 
 
     // ----------------- SUPPLY DEPOT ----------------
-    // represents supply depots; index i represents (i+1)'th supply depot in the game
-    // at this point, this vector is empty because I don't intend on doing anything with the supply depots
-    std::vector<Tag> supply_depot_tags;
     SupplyDepotState supply_depot_state = SupplyDepotState::FIRST;
 
     bool TryBuildSupplyDepot(std::string &depot_);

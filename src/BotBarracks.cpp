@@ -101,7 +101,7 @@ void Bot::BarracksHandler() {
             }
         } else if (state == BarracksState::PRODUCING_MARAUDERS) {
             // do not overload the queue
-            if (unit->orders.size() < 1)
+            if (unit->orders.empty())
                 TryProducingMarauder(unit);
         }
 

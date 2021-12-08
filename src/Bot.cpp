@@ -4,8 +4,6 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
-#include <climits>
-#include <string>
 
 Bot::Bot(const BotConfig &config)
         : config(config) {}
@@ -260,7 +258,6 @@ void Bot::OnBuildingConstructionComplete(const Unit *unit) {
             break;
         }
         case UNIT_TYPEID::TERRAN_COMMANDCENTER: {
-            // std::cout << "DEBUG: CC finished building" << std::endl;
             ChangeCCState(unit->tag); //command center finished building, so change its state
             break;
         }
@@ -388,8 +385,6 @@ Bot::chooseNearbyBuildLocation(const Point3D &center, const double &radius, ABIL
     double iter = 0;
     double _radius = radius;
     bool placeable = false;
-
-    double unit_radius = buildInfo->unit_radius;
 
     // keep rotating a vector around a center point until a location is found
     while (!placeable) {
@@ -660,7 +655,6 @@ void Bot::FindBaseLocations() {
 
     for (auto &u: observation->GetUnits()) {
         if (isMineral(u)) {
-            //std::cout << "mineral field at:" << u->pos.x << " " << u->pos.y << "facing: " << u->facing << std::endl;
             mineralFields.push_back(Point3D(u->pos.x, u->pos.y, u->pos.z));
         }
     }
@@ -679,7 +673,6 @@ void Bot::FindBaseLocations() {
         }
     }
     clusters.push_back(start_cluster);
-    //test.insert(start_location);
     ++numClusters;
 
     // find other clusters based on distance threshold
@@ -714,16 +707,9 @@ void Bot::FindBaseLocations() {
         skip = false;
     }
 
-    if (Observation()->GetUnit(command_center_tags[0]) != nullptr) {
-        Point2D temp = Observation()->GetUnit(command_center_tags[0])->pos;
-    }
-
-    //std::cout << "distance between starting center and field:" << dist(computeClusterCenter(clusters[0]),temp)<< std::endl;
-
     Point3D center;
     for (const std::vector<Point3D> &p: clusters) {
         center = computeClusterCenter(p);
-        //std::cout << "center: " << center.x << " " << center.y << " " << center.z << std::endl;
         clusterCenters.push_back(center);
     }
 }
@@ -733,17 +719,12 @@ void Bot::FindBaseLocations() {
 bool Bot::isMineral(const Unit *u) {
     UNIT_TYPEID unit_type = u->unit_type;
     switch (unit_type) {
-        case UNIT_TYPEID::NEUTRAL_MINERALFIELD         :
-            return true;
-        case UNIT_TYPEID::NEUTRAL_MINERALFIELD750      :
-            return true;
-        case UNIT_TYPEID::NEUTRAL_RICHMINERALFIELD     :
-            return true;
-        case UNIT_TYPEID::NEUTRAL_RICHMINERALFIELD750  :
-            return true;
-        case UNIT_TYPEID::NEUTRAL_LABMINERALFIELD        :
-            return true;
-        case UNIT_TYPEID::NEUTRAL_LABMINERALFIELD750    :
+        case UNIT_TYPEID::NEUTRAL_MINERALFIELD:
+        case UNIT_TYPEID::NEUTRAL_MINERALFIELD750:
+        case UNIT_TYPEID::NEUTRAL_RICHMINERALFIELD:
+        case UNIT_TYPEID::NEUTRAL_RICHMINERALFIELD750:
+        case UNIT_TYPEID::NEUTRAL_LABMINERALFIELD:
+        case UNIT_TYPEID::NEUTRAL_LABMINERALFIELD750:
             return true;
         default:
             return false;
@@ -804,9 +785,7 @@ void Bot::CommandToAttack(const Unit *attacking_unit, const Units &enemy_units) 
                                                    });
 
     if (have_stimpack && units_should_attack &&
-        attacking_unit->health >= attacking_unit->health_max * config.stimpackMinHealth /* &&
-        DistanceSquared3D(attacking_unit->pos, unit_to_attack->pos) <=
-        config.stimpackMaxDistanceToEnemy * config.stimpackMaxDistanceToEnemy */) {
+        attacking_unit->health >= attacking_unit->health_max * config.stimpackMinHealth) {
         // Apply Stimpack to the attacking unit
         if (attacking_unit->unit_type == UNIT_TYPEID::TERRAN_MARINE) {
             Actions()->UnitCommand(attacking_unit, ABILITY_ID::EFFECT_STIM_MARINE);
