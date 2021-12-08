@@ -4,7 +4,7 @@
 
 void Bot::TryBuildingBarracks() {
     const auto *observation = Observation();
-    auto num_barracks = observation->GetUnits(IsUnit(sc2::UNIT_TYPEID::TERRAN_BARRACKS)).size();
+    auto num_barracks = CountUnitType(UNIT_TYPEID::TERRAN_BARRACKS);
     auto current_supply = observation->GetFoodUsed();
     auto required_supply = config.supplyToBuildBarracksAt.at(num_barracks);
 

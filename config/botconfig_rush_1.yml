@@ -20,4 +20,10 @@ EngineeringBay:
 Medivac:
     maxUnits: 2   # maximum number of medivacs to have at a time
 AttackTrigger:
-    timeSeconds: 540 # number of seconds of game time to trigger an attack at
+    timeSeconds: 420 # number of seconds of game time to trigger an attack at
+    armyUnits: 50 # number of army units to trigger an attack at
+Defend:
+    radius: 20 # radius around our command center to defend
+Stimpack:
+    minHealth: 0.6 # minimum health of a unit to use stimpack
+    maxDistanceToEnemy: 20 # maximum distance to the enemy to use stimpack

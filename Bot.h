@@ -235,22 +235,40 @@ private:
 
     void ChangeFirstEbayState();
 
-    // ------------------------ INFANTRY UNITS ----------------------
-    // Location of the enemy base.
-    std::unique_ptr<Point2D> enemy_base_location = nullptr;
-
-    // true iff infantry units should attack enemy units when they idle, false otherwise.
+    // -------------------------- ARMY UNITS ------------------------
+    // true iff army units should attack enemy units when they idle, false otherwise.
     bool units_should_attack = false;
+
+    // true iff we were just defending our base against at least one enemy.
+    bool just_defended = false;
+
+    // True iff we have visited the enemy base to attack it.
+    bool visited_enemy_base = false;
+
+    // Get a list of all of our army units.
+    Units GetArmyUnits();
 
     // Checks if an attack should be made and performs an attack if so.
     void AttackHandler();
 
+    // Checks if we should defend our base and performs a defensive action if so.
+    void DefendHandler();
+
     // Command a unit to perform an attack on the enemy.
-    void CommandToAttack(const Unit *attacking_unit);
+    void CommandToAttack(const Unit *attacking_unit, const Units &enemy_units);
+
+    // Command a unit to search for enemy units.
+    void CommandToSearchForEnemies(const Unit *);
 
     // -------------------------- SCOUTING --------------------------
     // The tag of the scouting SCV, or 0 if there is none.
     Tag scouting_scv = 0;
+
+    // True iff the scouting SCV is currently returning to the base. Undefined if there is no scouting SCV.
+    bool scouting_scv_returning = false;
+
+    // Location of the enemy base. nullptr if we haven't found it.
+    std::unique_ptr<Point2D> enemy_base_location = nullptr;
 
     // Send a unit to scout for enemy buildings
     void SendScout();
