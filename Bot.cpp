@@ -160,6 +160,8 @@ void Bot::OnStep() {
     EBayHandler();
 
     AttackHandler();
+
+    DefendHandler();
 }
 
 size_t Bot::CountUnitType(UNIT_TYPEID unit_type) {
@@ -722,30 +724,43 @@ bool Bot::isMineral(const Unit *u){
     }
 }
 
+inline Units Bot::GetArmyUnits() {
+    return Observation()->GetUnits(
+            Unit::Alliance::Self, IsUnits({UNIT_TYPEID::TERRAN_MARINE, UNIT_TYPEID::TERRAN_MARAUDER}));
+}
+
 void Bot::AttackHandler() {
     const auto *observation = Observation();
 
-    if ((float) observation->GetGameLoop() * SECONDS_PER_GAME_LOOP >= (float) config.attackTriggerTimeSeconds) {
+    // Trigger an attack if either the time or number of army units thresholds are reached
+    if ((float) observation->GetGameLoop() * SECONDS_PER_GAME_LOOP >= (float) config.attackTriggerTimeSeconds
+        || GetArmyUnits().size() >= (size_t) config.attackTriggerArmyUnits) {
         units_should_attack = true;
     }
 
     if (!units_should_attack)
         return;
 
-    const auto infantry_units = observation->GetUnits(
-            Unit::Alliance::Self, IsUnits({UNIT_TYPEID::TERRAN_MARINE, UNIT_TYPEID::TERRAN_MARAUDER}));
+    const auto army_units = GetArmyUnits();
 
     // Get enemy units that are currently visible or were seen before
     auto enemy_units = observation->GetUnits(Unit::Alliance::Enemy, [](const auto &unit) {
         return unit.display_type == Unit::DisplayType::Visible || unit.display_type == Unit::DisplayType::Snapshot;
     });
 
-    for (const auto *unit : infantry_units) {
-        CommandToAttack(unit, enemy_units);
+    for (const auto *unit : army_units) {
+        if (enemy_units.empty() && unit->orders.empty()) {
+            CommandToSearchForEnemies(unit);
+        } else {
+            CommandToAttack(unit, enemy_units);
+        }
     }
 }
 
 void Bot::CommandToAttack(const Unit *attacking_unit, const Units &enemy_units) {
+    if (enemy_units.empty())
+        return;
+
     // No need to command again if the unit is currently attacking
     if (!attacking_unit->orders.empty()) {
         const auto &current_order = attacking_unit->orders.front();
@@ -755,62 +770,96 @@ void Bot::CommandToAttack(const Unit *attacking_unit, const Units &enemy_units) 
         }
     }
 
-    const auto *observation = Observation();
+    // Attack the closest enemy unit
+    const auto *unit_to_attack = *std::min_element(enemy_units.begin(), enemy_units.end(),
+                                                   [attacking_unit](const auto &a, const auto &b) {
+                                                       return DistanceSquared3D(attacking_unit->pos, a->pos) <
+                                                              DistanceSquared3D(attacking_unit->pos, b->pos);
+                                                   });
 
-    // Mark enemy base as visited once an attacking unit is close enough to it
-    if (enemy_base_location
-        && !visited_enemy_base
-        && DistanceSquared2D(attacking_unit->pos, *enemy_base_location) <= 5 * 5) {
-        visited_enemy_base = true;
+    if (have_stimpack && attacking_unit->health >= attacking_unit->health_max * config.stimpackMinHealth &&
+        DistanceSquared3D(attacking_unit->pos, unit_to_attack->pos) <=
+        config.stimpackMaxDistanceToEnemy * config.stimpackMaxDistanceToEnemy) {
+        // Apply Stimpack to the attacking unit
+        if (attacking_unit->unit_type == UNIT_TYPEID::TERRAN_MARINE) {
+            Actions()->UnitCommand(attacking_unit, ABILITY_ID::EFFECT_STIM_MARINE);
+        } else if (attacking_unit->unit_type == UNIT_TYPEID::TERRAN_MARAUDER) {
+            Actions()->UnitCommand(attacking_unit, ABILITY_ID::EFFECT_STIM_MARAUDER);
+        }
     }
 
-    if (!enemy_units.empty()) {
-        // Attack the closest enemy unit
-        const auto *unit_to_attack = *std::min_element(enemy_units.begin(), enemy_units.end(),
-                                                       [attacking_unit](const auto &a, const auto &b) {
-                                                           return DistanceSquared3D(attacking_unit->pos, a->pos) <
-                                                                  DistanceSquared3D(attacking_unit->pos, b->pos);
-                                                       });
+    if (unit_to_attack->unit_type == UNIT_TYPEID::ZERG_CHANGELINGMARINE ||
+        unit_to_attack->unit_type == UNIT_TYPEID::ZERG_CHANGELINGMARINESHIELD) {
+        // Special attack handling for Changeling, as they are not attackable in the same way as other units
+        Actions()->UnitCommand(attacking_unit, ABILITY_ID::ATTACK, unit_to_attack);
+    } else {
+        Actions()->UnitCommand(attacking_unit, ABILITY_ID::ATTACK_ATTACK, unit_to_attack->pos);
+    }
+}
 
-        if (unit_to_attack->unit_type == UNIT_TYPEID::ZERG_CHANGELINGMARINE ||
-            unit_to_attack->unit_type == UNIT_TYPEID::ZERG_CHANGELINGMARINESHIELD) {
-            Actions()->UnitCommand(attacking_unit, ABILITY_ID::ATTACK, unit_to_attack);
-        } else {
-            Actions()->UnitCommand(attacking_unit, ABILITY_ID::ATTACK_ATTACK, unit_to_attack->pos);
-        }
+void Bot::CommandToSearchForEnemies(const Unit *unit) {
+    if (!expansion_locations)
+        return;
 
-        if (have_stimpack) {
-            // Apply Stimpack to the attacking unit
-            if (attacking_unit->unit_type == UNIT_TYPEID::TERRAN_MARINE) {
-                if (attacking_unit->health >= attacking_unit->health_max / 2) {
-                    Actions()->UnitCommand(attacking_unit, ABILITY_ID::EFFECT_STIM_MARINE);
-                }
-            } else if (attacking_unit->unit_type == UNIT_TYPEID::TERRAN_MARAUDER) {
-                if (attacking_unit->health >= attacking_unit->health_max / 2) {
-                    Actions()->UnitCommand(attacking_unit, ABILITY_ID::EFFECT_STIM_MARAUDER);
-                }
+    // Queue the unit to visit each expansion location in the order of distance
+    auto sorted_expansions = *expansion_locations;
+    std::sort(
+            sorted_expansions.begin(), sorted_expansions.end(), [&](const auto &a, const auto &b) {
+                return DistanceSquared3D(unit->pos, a) <
+                       DistanceSquared3D(unit->pos, b);
+            });
+    for (const auto &loc : sorted_expansions) {
+        Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, loc, true);
+    }
+}
+
+void Bot::DefendHandler() {
+    // Do not defend if we are already attacking
+    if (units_should_attack)
+        return;
+
+    const auto *observation = Observation();
+    const auto army_units = GetArmyUnits();
+
+    // Get command center position
+    const auto *cc = observation->GetUnit(command_center_tags[0]);
+    if (!cc)
+        return;
+
+    // Get enemy units that are visible
+    // Since we are defending (at our base), we only care about visible enemy units
+    auto all_visible_enemies = observation->GetUnits(Unit::Alliance::Enemy, IsVisible());
+
+    // Only defend against enemy units that are near our base
+    std::vector<const Unit *> close_enemies;
+    std::copy_if(all_visible_enemies.begin(), all_visible_enemies.end(), std::back_inserter(close_enemies),
+                 [&](const auto &unit) {
+                     return DistanceSquared3D(cc->pos, unit->pos) <= config.defendRadius * config.defendRadius;
+                 });
+
+    if (close_enemies.empty()) {
+        // If there are no close enemies and we were just defending,
+        // make our army units go back to the rally point (command center)
+        if (just_defended) {
+            just_defended = false;
+            for (const auto *unit: army_units) {
+                Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, cc->pos);
             }
         }
-    } else if (enemy_base_location && !visited_enemy_base) {
-        // Otherwise, attack the enemy base if we know where it is and have not visited it yet
-        Actions()->UnitCommand(attacking_unit, ABILITY_ID::ATTACK_ATTACK, *enemy_base_location);
-    } else if (expansion_locations && attacking_unit->orders.empty()) {
-        // Otherwise, explore the map by visiting all expansions, starting with the closest
-        auto sorted_expansions = *expansion_locations;
-        std::sort(
-                sorted_expansions.begin(), sorted_expansions.end(), [&](const auto &a, const auto &b) {
-                    return DistanceSquared3D(attacking_unit->pos, a) <
-                           DistanceSquared3D(attacking_unit->pos, b);
-                });
-        for (const auto &loc : sorted_expansions) {
-            Actions()->UnitCommand(attacking_unit, ABILITY_ID::MOVE_MOVE, loc, true);
-        }
+        return;
+    }
+
+    // Otherwise, defend against the close enemy units by attacking them
+    just_defended = true;
+    for (const auto *attacking_unit : army_units) {
+        CommandToAttack(attacking_unit, close_enemies);
     }
 }
 
 void Bot::OnUnitEnterVision(const Unit *unit) {
-    if (enemy_base_location != nullptr || !unit->is_building)
+    if (found_enemy)
         return;
+    found_enemy = true;
 
     const auto *observation = Observation();
     const auto enemy_start_locations = observation->GetGameInfo().enemy_start_locations;
@@ -825,9 +874,6 @@ void Bot::OnUnitEnterVision(const Unit *unit) {
                                                                    DistanceSquared2D(b, building_pos);
                                                         });
 
-    // Set the closest enemy start location as the estimated enemy base location
-    enemy_base_location = std::make_unique<Point2D>(*closest_enemy_base_it);
-
     // Order the scouting SCV to return to our command center and make it no longer the scouting SCV
     if (scouting_scv != 0) {
         const auto *cc = observation->GetUnit(command_center_tags[0]);
@@ -838,7 +884,6 @@ void Bot::OnUnitEnterVision(const Unit *unit) {
     }
 
     std::cout << "DEBUG: Found enemy " << unit->unit_type.to_string() << " at " << building_pos.x << ',' << building_pos.y << '\n';
-    std::cout << "DEBUG: Estimating that enemy base location is at " << enemy_base_location->x << ',' << enemy_base_location->y << '\n';
 }
 
 void Bot::SendScout() {
