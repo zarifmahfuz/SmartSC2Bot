@@ -264,6 +264,9 @@ private:
     // The tag of the scouting SCV, or 0 if there is none.
     Tag scouting_scv = 0;
 
+    // True iff the scouting SCV is currently returning to the base. Undefined if there is no scouting SCV.
+    bool scouting_scv_returning = false;
+
     // Send a unit to scout for enemy buildings
     void SendScout();
 };

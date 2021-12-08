@@ -875,12 +875,13 @@ void Bot::OnUnitEnterVision(const Unit *unit) {
                                                         });
 
     // Order the scouting SCV to return to our command center and make it no longer the scouting SCV
-    if (scouting_scv != 0) {
+    if (scouting_scv != 0 && !scouting_scv_returning) {
+        const auto *scv = observation->GetUnit(scouting_scv);
         const auto *cc = observation->GetUnit(command_center_tags[0]);
-        if (cc) {
-            Actions()->UnitCommand(observation->GetUnit(scouting_scv), ABILITY_ID::MOVE_MOVE, cc->pos, false);
+        if (scv && cc) {
+            Actions()->UnitCommand(scv, ABILITY_ID::MOVE_MOVE, cc->pos, false);
+            scouting_scv_returning = true;
         }
-        scouting_scv = 0;
     }
 
     std::cout << "DEBUG: Found enemy " << unit->unit_type.to_string() << " at " << building_pos.x << ',' << building_pos.y << '\n';
