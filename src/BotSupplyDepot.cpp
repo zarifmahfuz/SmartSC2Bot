@@ -29,7 +29,7 @@ bool Bot::TryBuildSupplyDepot(std::string &depot_) {
     int required_supply_count = config.supply_depot.at(depot_);
 
     if (supply_count >= required_supply_count && canAffordUnit(UNIT_TYPEID::TERRAN_SUPPLYDEPOT)) {
-        std::cout << "DEBUG: Build " << depot_ << " Supply Depot \n";
+        // std::cout << "DEBUG: Build " << depot_ << " Supply Depot \n";
         return TryBuildStructure(ABILITY_ID::BUILD_SUPPLYDEPOT);
     }
     return false;
@@ -44,11 +44,10 @@ void Bot::SupplyDepotHandler() {
     if (supply_depot_state == SupplyDepotState::FIRST) {
         std::string depot = "first";
         // need to build the first supply depot if it is not already being built
-        if ( CountUnitType(UNIT_TYPEID::TERRAN_SUPPLYDEPOT) < 1 ) {
+        if (CountUnitType(UNIT_TYPEID::TERRAN_SUPPLYDEPOT) < 1) {
             TryBuildSupplyDepot(depot);
         }
-    }
-    else if (supply_depot_state == SupplyDepotState::SECOND) {
+    } else if (supply_depot_state == SupplyDepotState::SECOND) {
         std::string depot = "second";
         // need to build the second supply depot if it is not already being built
         if (CountUnitType(UNIT_TYPEID::TERRAN_SUPPLYDEPOT) < 2) {

@@ -12,23 +12,35 @@
 using namespace sc2;
 
 // states mapping the action we are trying to do related to a Supply Depot
-enum SupplyDepotState { FIRST, SECOND, THIRD, CONT };
+enum SupplyDepotState {
+    FIRST, SECOND, THIRD, CONT
+};
 
 // states mapping the action we are trying to do with a Refinery
-enum RefineryState { REFINERY_FIRST, ASSIGN_WORKERS, REFINERY_IDLE };
+enum RefineryState {
+    REFINERY_FIRST, ASSIGN_WORKERS, REFINERY_IDLE
+};
 
 // states representing actions taken by Barracks
-enum class BarracksState { BUILDING, BUILDING_TECH_LAB, BUILDING_REACTOR, PRODUCING_MARINES, PRODUCING_MARAUDERS };
+enum class BarracksState {
+    BUILDING, BUILDING_TECH_LAB, BUILDING_REACTOR, PRODUCING_MARINES, PRODUCING_MARAUDERS
+};
 
 // states representing actions taken by Barracks Tech Lab
-enum class BarracksTechLabState { NONE, BUILDING, RESEARCHING_STIMPACK, RESEARCHING_COMBAT_SHIELD, DONE };
+enum class BarracksTechLabState {
+    NONE, BUILDING, RESEARCHING_STIMPACK, RESEARCHING_COMBAT_SHIELD, DONE
+};
 
 // states representing actions taken by the first Command Center
 
-enum CommandCenterState { BUILDCC, PREUPGRADE_TRAINSCV, OC, POSTUPGRADE_TRAINSCV };
+enum CommandCenterState {
+    BUILDCC, PREUPGRADE_TRAINSCV, OC, POSTUPGRADE_TRAINSCV
+};
 
 // states reprenting actions taken by the first Engineering Bay
-enum EBayState {EBAYBUILD, INFANTRYWEAPONSUPGRADELEVEL1};
+enum EBayState {
+    EBAYBUILD, INFANTRYWEAPONSUPGRADELEVEL1
+};
 
 // number of seconds per game loop from Observation()->GetGameLoop()
 const float SECONDS_PER_GAME_LOOP = 1 / 22.4F;
@@ -38,7 +50,9 @@ public:
     explicit Bot(const BotConfig &config);
 
     virtual void OnGameStart() final;
+
     virtual void OnGameEnd() final;
+
     virtual void OnStep() final;
 
     // this will get called each time a unit has no orders in the current step
@@ -64,13 +78,12 @@ public:
 
     // builds a structure at some distance away from the selected builder unit
     // simult is set to true when you want to allow building a unit when another unit of the same type is under construction
-    bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::TERRAN_SCV, bool simult = false, std::string n = " ");
+    bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::TERRAN_SCV,
+                           bool simult = false, std::string n = " ");
 
-    bool TryBuildCommandCenter();
-    
     // issues a command to n number of SCVs - returns true if the command was successful, false otherwise
     bool CommandSCVs(int n, const Unit *target, ABILITY_ID ability = ABILITY_ID::SMART);
-  
+
 private:
     BotConfig config;
 
@@ -88,11 +101,11 @@ private:
     std::vector<Point3D> clusterCenters;
 
     // number of mineral field clusters
-    int numClusters;
+    int numClusters = 0;
 
     // struct to store info related to building command centers in the correct location
-    struct BuildCommandInfo:public BuildInfo{
-        BuildCommandInfo(){
+    struct BuildCommandInfo : public BuildInfo {
+        BuildCommandInfo() {
             previous_radius = 6;
             default_radius = 6;
             unit_radius = 3;
@@ -100,8 +113,8 @@ private:
     };
 
     // struct to store info related to building barracks in the correct location
-    struct BuildBarracksInfo:public BuildInfo{
-        BuildBarracksInfo(){   
+    struct BuildBarracksInfo : public BuildInfo {
+        BuildBarracksInfo() {
             previous_radius = 12;
             unit_radius = 3;
             default_radius = 12;
@@ -109,7 +122,7 @@ private:
     };
 
     // this map stores the build info of a building to be built identified by a string
-    std::map<std::string,BuildInfo> BuildMap;
+    std::map<std::string, BuildInfo> BuildMap;
 
     // finds the locations of all bases in the map
     void FindBaseLocations();
@@ -121,10 +134,9 @@ private:
     Point3D computeClusterCenter(const std::vector<Point3D> &cluster);
 
     // chooses a nearby location to a mineral field to build on
-    Point2D chooseNearbyBuildLocation(const Point3D &center, const double &radius, ABILITY_ID ability_type_for_structure, std::string n = " ");
-
-    // find nearby ramp location
-    void findNearbyRamp();
+    Point2D
+    chooseNearbyBuildLocation(const Point3D &center, const double &radius, ABILITY_ID ability_type_for_structure,
+                              std::string n = " ");
 
     // convert degree to radian
     double Convert(double degree);
@@ -140,13 +152,10 @@ private:
 
 
     // ----------------- SUPPLY DEPOT ----------------
-    // represents supply depots; index i represents (i+1)'th supply depot in the game
-    // at this point, this vector is empty because I don't intend on doing anything with the supply depots
-    std::vector<Tag> supply_depot_tags;
     SupplyDepotState supply_depot_state = SupplyDepotState::FIRST;
 
     bool TryBuildSupplyDepot(std::string &depot_);
-    
+
     // handles the states of Supply Depot
     void SupplyDepotHandler();
 
@@ -172,7 +181,7 @@ private:
 
     // trys to attach a Tech Lab to the n'th Barracks
     void TryBuildingBarracksTechLab(const Unit *barracks);
-    
+
     // trys to research Stimpack at a Barracks Tech Lab
     void TryResearchingStimpack(const Unit *tech_lab);
 
@@ -198,7 +207,7 @@ private:
     bool first_cc_drop_mules = false;
 
     // keeps track of the state for each command center
-    std::map<Tag,CommandCenterState> CCStates;
+    std::map<Tag, CommandCenterState> CCStates;
 
     // changes states for CC
     void ChangeCCState(Tag cc);
@@ -215,10 +224,14 @@ private:
     // ------------------------ REFINERY ----------------------------
     std::vector<Tag> refinery_tags;
     RefineryState refinery_state = RefineryState::REFINERY_FIRST;
+
     void ChangeRefineryState();
+
     void RefineryHandler();
+
     // parameter can be "first", "second", ...
     bool TryBuildRefinery(std::string &refinery_);
+
     // assigns a target amount of workers to a given Refinery, should be between [0, 3]
     // returns true if workers were assigned, false otherwise
     bool AssignWorkersToRefinery(const Tag &tag, int target_workers);

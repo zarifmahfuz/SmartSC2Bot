@@ -28,7 +28,7 @@ void Bot::TryResearchingStimpack(const Unit *tech_lab) {
     assert(tech_lab->unit_type == UNIT_TYPEID::TERRAN_BARRACKSTECHLAB);
 
     if (canAffordUpgrade(UPGRADE_ID::STIMPACK)) {
-        std::cout << "DEBUG: Researching Stimpack at a Barracks Tech Lab\n";
+        // std::cout << "DEBUG: Researching Stimpack at a Barracks Tech Lab\n";
         Actions()->UnitCommand(tech_lab, ABILITY_ID::RESEARCH_STIMPACK);
     }
 }
@@ -37,14 +37,14 @@ void Bot::TryResearchingCombatShield(const Unit *tech_lab) {
     assert(tech_lab->unit_type == UNIT_TYPEID::TERRAN_BARRACKSTECHLAB);
 
     if (canAffordUpgrade(UPGRADE_ID::COMBATSHIELD)) {
-        std::cout << "DEBUG: Researching Combat Shield at a Barracks Tech Lab\n";
+        // std::cout << "DEBUG: Researching Combat Shield at a Barracks Tech Lab\n";
         Actions()->UnitCommand(tech_lab, ABILITY_ID::RESEARCH_COMBATSHIELD);
     }
 }
 
 void Bot::TryProducingMarine(const Unit *barracks) {
-   assert(barracks->unit_type == UNIT_TYPEID::TERRAN_BARRACKS);
-   Actions()->UnitCommand(barracks, ABILITY_ID::TRAIN_MARINE);
+    assert(barracks->unit_type == UNIT_TYPEID::TERRAN_BARRACKS);
+    Actions()->UnitCommand(barracks, ABILITY_ID::TRAIN_MARINE);
 }
 
 void Bot::TryProducingMarauder(const Unit *barracks) {
@@ -71,9 +71,9 @@ void Bot::BarracksHandler() {
             std::cout << "DEBUG: Barracks i=" << i << " unit is a nullptr\n";
             continue;
         }
-        const Unit* add_on = observation->GetUnit(unit->add_on_tag);
+        const Unit *add_on = observation->GetUnit(unit->add_on_tag);
         auto &state = barracks_states[i];
-        
+
 
         if (state == BarracksState::BUILDING) {
             if (unit->IsBuildFinished()) {
@@ -101,7 +101,7 @@ void Bot::BarracksHandler() {
             }
         } else if (state == BarracksState::PRODUCING_MARAUDERS) {
             // do not overload the queue
-            if (unit->orders.size() < 1)
+            if (unit->orders.empty())
                 TryProducingMarauder(unit);
         }
 

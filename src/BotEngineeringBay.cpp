@@ -8,14 +8,11 @@ void Bot::EBayHandler() {
         // if a E-Bay is not already being built
         if (CountUnitType(UNIT_TYPEID::TERRAN_ENGINEERINGBAY) == 0) {
             TryBuildEBay(first_ebay);
-        }
-        else {
+        } else {
             ChangeFirstEbayState();
         }
 
-    }
-
-    else if (first_e_bay_state == INFANTRYWEAPONSUPGRADELEVEL1) {
+    } else if (first_e_bay_state == INFANTRYWEAPONSUPGRADELEVEL1) {
         TryInfantryWeaponsUpgrade(1); // use the first E-Bay
     }
 }
@@ -39,7 +36,7 @@ bool Bot::TryBuildEBay(std::string &ebays_) {
     size_t supply_count = Observation()->GetFoodUsed();
     int required_supply_count = config.engineeringBayFirst;
     if (supply_count >= required_supply_count && canAffordUnit(UNIT_TYPEID::TERRAN_ENGINEERINGBAY)) {
-        std::cout << "DEBUG: Build " << ebays_ << " E-Bay\n";
+        // std::cout << "DEBUG: Build " << ebays_ << " E-Bay\n";
         // order an SCV to build barracks
         return TryBuildStructure(ABILITY_ID::BUILD_ENGINEERINGBAY, UNIT_TYPEID::TERRAN_SCV, true);
     }

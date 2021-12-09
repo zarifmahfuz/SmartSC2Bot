@@ -26,13 +26,13 @@ bool Bot::TryBuildRefinery(std::string &refinery_) {
         // get an SCV to build the structure
         const Unit *builder_unit = nullptr;
         Units units = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::TERRAN_SCV));
-        for (const auto &unit : units) {
+        for (const auto &unit: units) {
             // Skip the unit if it is the scouting SCV
             if (unit->tag == scouting_scv)
                 continue;
 
             // Abort the build if the unit is already building a refinery
-            for (const auto &order : unit->orders) {
+            for (const auto &order: unit->orders) {
                 if (order.ability_id == ABILITY_ID::BUILD_REFINERY) {
                     return false;
                 }
@@ -46,16 +46,18 @@ bool Bot::TryBuildRefinery(std::string &refinery_) {
         if (!builder_unit) { return false; }
 
         // get the nearest vespene geyser
-        const Unit *vespene_geyser = FindNearestRequestedUnit(builder_unit->pos, Unit::Alliance::Neutral, UNIT_TYPEID::NEUTRAL_VESPENEGEYSER);
+        const Unit *vespene_geyser = FindNearestRequestedUnit(builder_unit->pos, Unit::Alliance::Neutral,
+                                                              UNIT_TYPEID::NEUTRAL_VESPENEGEYSER);
 
         // on the Proxima Station Map, vespene geysers are referred as SPACEPLATFORMGEYSER
         if (!vespene_geyser) {
-            vespene_geyser = FindNearestRequestedUnit(builder_unit->pos, Unit::Alliance::Neutral, UNIT_TYPEID::NEUTRAL_SPACEPLATFORMGEYSER);
+            vespene_geyser = FindNearestRequestedUnit(builder_unit->pos, Unit::Alliance::Neutral,
+                                                      UNIT_TYPEID::NEUTRAL_SPACEPLATFORMGEYSER);
         }
         if (!vespene_geyser) { return false; }
 
         if (canAffordUnit(UNIT_TYPEID::TERRAN_REFINERY)) {
-            std::cout << "DEBUG: Build " << refinery_ << " Refinery\n";
+            // std::cout << "DEBUG: Build " << refinery_ << " Refinery\n";
             // issue a command to the selected unit
             Actions()->UnitCommand(builder_unit, ABILITY_ID::BUILD_REFINERY, vespene_geyser);
             return true;
@@ -87,7 +89,7 @@ void Bot::RefineryHandler() {
         }
     } else if (refinery_state == RefineryState::ASSIGN_WORKERS) {
         // assign workers to the refinery if they are under a target amount of workers
-        for (const Tag &tag : refinery_tags) {
+        for (const Tag &tag: refinery_tags) {
             AssignWorkersToRefinery(tag, 3);
         }
     }
