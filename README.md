@@ -15,8 +15,8 @@ Download and install [Visual Studio 2019](https://www.visualstudio.com/downloads
 
 ```bat
 :: Clone the project
-$ git clone --recursive https://github.com/zarifmahfuz/SmartBot.git
-$ cd SmartBot
+$ git clone --recursive https://github.com/zarifmahfuz/SmartSC2Bot.git
+$ cd SmartSC2Bot
 
 :: Create build directory.
 $ mkdir build
@@ -24,10 +24,9 @@ $ cd build
 
 :: Generate VS solution.
 $ cmake ../ -G "Visual Studio 16 2019"
-
-:: Build the project using Visual Studio.
-$ start BasicSc2Bot.sln
 ```
+The solution file that is generated in the build directory can be opened with Visual Studio.
+From there, the project can be compiled.
 
 ## Mac
 
@@ -38,8 +37,8 @@ Note: Try opening the SC2 game client before installing. If the game crashes bef
 
 ```bat
 :: Clone the project
-$ git clone --recursive https://github.com/zarifmahfuz/SmartBot.git
-$ cd SmartBot
+$ git clone --recursive https://github.com/zarifmahfuz/SmartSC2Bot.git
+$ cd SmartSC2Bot
 
 :: Create build directory.
 $ mkdir build
@@ -53,15 +52,21 @@ $ cmake ../
 $ make
 ```
 
+For both Windows and Mac, an executable `Bot` should be generated in the `build/bin` directory. 
+
 # Running
-First, configure the BasicSc2Bot project's command-line arguments to debug with:
-1. In Visual Studio, right-click on the BasicSc2Bot project under the solution in the Solution Explorer.
-2. Click Properties.
-3. In the top-left of the window that appears, set the Configuration to "Active(Debug)".
-4. Select the Debugging page under Configuration Properties on the left.
-5. Set the value of Command Arguments to `-c -a zerg -d Hard -m CactusValleyLE.SC2Map`. This will result in the bot playing against the built-in Zerg AI on hard difficulty on the map CactusValleyLE.
-6. Click OK.
+To run the bot, run `build/bin/Bot` and pass the command-line arguments that the LadderInterface expects.
+For example, the following command runs the bot against a Hard-difficulty Zerg computer opponent on Cactus Valley.
 
+```
+$ build/bin/Bot -c -a zerg -d Hard -m CactusValleyLE.SC2Map
+```
 
-You can press F5 or the ▶ button at the top of Visual Studio to run the bot with the command-line arguments you configured.
+This will run StarCraft II from its default installation directory, and look for CactusValleyLE.SC2Map in a subdirectory of it called "Maps".
+
+To see a full list of command-line arguments run the following command.
+
+```
+$ build/bin/Bot --help
+```
 
